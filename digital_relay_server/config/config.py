@@ -1,11 +1,11 @@
-import secrets
+import os
 
 API_URL_PREFIX = '/api'
 # Generate a nice key using secrets.token_urlsafe()
-SECRET_KEY = secrets.token_urlsafe()
+SECRET_KEY = os.environ.get("SECRET_KEY", 'pf9Wkove4IKEAXvy-cQkeDPhv9Cb3Ag-wyJILbq_dFw')
 # Bcrypt is set as default SECURITY_PASSWORD_HASH, which requires a salt
 # Generate a good salt using: secrets.SystemRandom().getrandbits(128)
-SECURITY_PASSWORD_SALT = secrets.SystemRandom().getrandbits(128).to_bytes(128, 'big')
+SECURITY_PASSWORD_SALT = os.environ.get("SECURITY_PASSWORD_SALT", '146585145368132386173505678016728509634')
 WTF_CSRF_ENABLED = False
 SECURITY_SEND_REGISTER_EMAIL = False
 SECURITY_REGISTERABLE = True
