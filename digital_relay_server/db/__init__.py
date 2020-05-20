@@ -13,7 +13,7 @@ class Role(Document, RoleMixin):
 
 
 class User(Document, UserMixin):
-    email = StringField(max_length=EMAIL_MAX_LENGTH)
+    email = StringField(max_length=EMAIL_MAX_LENGTH, unique=True)
     password = StringField(max_length=255)
     active = BooleanField(default=True)
     confirmed_at = DateTimeField()
@@ -32,9 +32,3 @@ class Team(Document):
     name = StringField(max_length=TEAM_NAME_MAX_LENGTH, unique=True)
     members = ListField(StringField(max_length=EMAIL_MAX_LENGTH))
 
-    def get_payload(self):
-        return {
-            'id': str(self.id),
-            'name': self.name,
-            'members': self.members
-        }

@@ -33,6 +33,7 @@ registration_response_body = ns_auth.model('Registration response body', {'user'
 registration_response = ns_auth.model('Registration response', {'meta': fields.Nested(response_meta),
                                                                 'response': fields.Nested(registration_response_body)})
 team = ns_teams.model('Team model', models['team_model'])
+team_list = ns_teams.model('Teams list', {'teams': fields.List(fields.Nested(team))})
 
 
 @ns_auth.route('')
@@ -70,8 +71,8 @@ class HelloWorld(Resource):
 @ns_teams.route('')
 class Teams(Resource):
     @ns_teams.expect(team)
-    @ns_auth.response(code=200, description='Team creation successful', model=team)
-    @ns_auth.response(code=400, description='Bad request', model=error)
+    @ns_teams.response(code=200, description='Team creation successful', model=team)
+    @ns_teams.response(code=400, description='Bad request', model=error)
     def post(self):
         """Creates a new team"""
         data = request.json
@@ -83,20 +84,29 @@ class Teams(Resource):
                             "status_code": 400}, error), 400
         try:
             response = newTeam.save()
-            response = response.get_payload()
             return marshal(response, team), 200
         except NotUniqueError:
             return marshal({"description": f'Team named {newTeam.name} already exists',
                             "error": 'Invalid team name',
                             "status_code": 400}, error), 400
 
+    @jwt_required()
+    @ns_teams.doc(security=authorizations)
+    @ns_teams.expect(auth_header_parser)
+    @ns_teams.response(code=200, description='OK', model=team_list)
+    @ns_teams.response(code=401, description='Unauthorized', model=error)
+    def get(self):
+        """Retrieves all teams that the current user belongs to"""
+        teams = Team.objects(members=current_identity.email)
+        return marshal({'teams': teams}, team_list), 200
+
 
 # noinspection PyUnresolvedReferences
 @ns_teams.route('/<team_id>')
 class TeamResource(Resource):
-    @ns_auth.response(code=200, description='OK', model=team)
-    @ns_auth.response(code=400, description='Invalid ID', model=error)
-    @ns_auth.response(code=404, description='Team not found', model=error)
+    @ns_teams.response(code=200, description='OK', model=team)
+    @ns_teams.response(code=400, description='Invalid ID', model=error)
+    @ns_teams.response(code=404, description='Team not found', model=error)
     def get(self, team_id):
         """Retrieve team information"""
         try:
