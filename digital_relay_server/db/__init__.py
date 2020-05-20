@@ -14,7 +14,7 @@ class Role(Document, RoleMixin):
 
 class User(Document, UserMixin):
     email = StringField(max_length=EMAIL_MAX_LENGTH, unique=True)
-    password = StringField(max_length=255)
+    password = StringField()
     active = BooleanField(default=True)
     confirmed_at = DateTimeField()
     roles = ListField(ReferenceField(Role), default=[])
