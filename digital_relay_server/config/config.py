@@ -17,8 +17,8 @@ JWT_AUTH_USERNAME_KEY = 'email'
 SWAGGER_UI_DOC_EXPANSION = 'list'
 
 MONGODB_DB = 'digital-relay-users'
-MONGODB_HOST = 'localhost'
-MONGODB_PORT = 27017
+MONGODB_HOST = os.environ.get('MONGODB_HOST', 'localhost')
+MONGODB_PORT = int(os.environ.get('MONGODB_PORT', 27017))
 
 EMAIL_MAX_LENGTH = 255
 PASSWORD_MAX_LENGTH = 255

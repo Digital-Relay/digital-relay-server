@@ -1,6 +1,9 @@
 Flask~=1.1.2
 email_validator
 bcrypt
-
+flask_restx
+flask_jwt
+Flask_Security_Too
+flask_mongoengine
 
 WTForms~=2.3.1
