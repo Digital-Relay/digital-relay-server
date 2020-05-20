@@ -24,3 +24,11 @@ jobs:
         with:
           app-name: 'digitalrelay-dev'
           images: 'digitalrelay/digital-relay-server:latest'
+      - name: Run latest version to generate OpenAPI specs
+        run: docker run -p 80:80 -d -e port=80 digitalrelay/digital-relay-server
+      - name: Generate OpenAPI Angular client
+        run: docker run --rm -v ${PWD}:/local swaggerapi/swagger-codegen-cli generate -i http://localhost/api/swagger.json -l typescript-angular -o /local/out/digital-relay-api-client -DpackageName=digital-relay-api-client -DprojectName=digital-relay-api-client
+      - name: Push new Angular client client
+        working-directory: ./local/out/digital-relay-api-client
+        #        TODO: Add token to GIT enviroment
+        run: ./git_push.sh <organization_id> digital-relay-api-client "${GITHUB_REF}"
