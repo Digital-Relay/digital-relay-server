@@ -45,7 +45,7 @@ from digital_relay_server.api.api import blueprint
 
 
 def register_blueprints(app):
-    app.register_blueprint(blueprint, url_prefix='/api')
+    app.register_blueprint(blueprint, url_prefix=config['API_URL_PREFIX'])
 
 
 register_blueprints(app)
