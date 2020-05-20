@@ -16,3 +16,11 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: digitalrelay/digital-relay-server
           tags: "latest,${{ env.RELEASE_VERSION }}"
+      - name: 'Login via Azure CLI'
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - uses: azure/webapps-container-deploy@v1
+        with:
+          app-name: 'digitalrelay-dev'
+          images: 'digitalrelay/digital-relay-server:latest'
