@@ -8,5 +8,10 @@ COPY . /digital-relay/
 WORKDIR /digital-relay
 RUN pip install -r requirements.txt
 RUN pip install gunicorn
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | apt-key add -
+RUN echo "deb http://repo.mongodb.org/apt/debian buster/mongodb-org/4.2 main" | tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+RUN apt-get update
+RUN apt-get install -y mongodb-org
+RUN mkdir -p /data/db
 EXPOSE ${port}
-CMD gunicorn -w ${server_workers} --timeout ${server_timeout} --reload --bind=0.0.0.0:${port} digital_relay_server:app
+CMD mongod | gunicorn -w ${server_workers} --timeout ${server_timeout} --reload --bind=0.0.0.0:${port} digital_relay_server:app
