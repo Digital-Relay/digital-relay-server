@@ -27,7 +27,8 @@ error = ns_auth.model('Error response', models['error_model'])
 security_bad_request = ns_auth.model('Bad security response', models['registration_error_keys_model'])
 response_meta = ns_auth.model('Response metadata', {'code': fields.Integer})
 registration_error_keys = ns_auth.model('Registration error keys', models['registration_error_keys_model'])
-registration_response_body = ns_auth.model('Registration response body', {'user': fields.Nested(user),
+registration_response_body = ns_auth.model('Registration response body', {'csrf_token': fields.String,
+                                                                          'user': fields.Nested(user),
                                                                           'errors': fields.Nested(
                                                                               registration_error_keys)})
 registration_response = ns_auth.model('Registration response', {'meta': fields.Nested(response_meta),
@@ -50,7 +51,7 @@ class Login(Resource):
 @ns_auth.route('/register')
 class Register(Resource):
     @ns_auth.expect(user_register)
-    @ns_auth.response(code=200, description='Registration successful', model=user)
+    @ns_auth.response(code=200, description='Registration successful', model=registration_response)
     @ns_auth.response(code=400, description='Request invalid', model=registration_response)
     def post(self):
         """Register a new user"""
