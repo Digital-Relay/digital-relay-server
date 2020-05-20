@@ -1,14 +1,20 @@
-from flask import Blueprint
+from bson import ObjectId
+from bson.errors import InvalidId
+from flask import Blueprint, request
 from flask_jwt import jwt_required, current_identity
-from flask_restx import Resource, Api, fields
+from flask_restx import Resource, Api, fields, marshal
+from mongoengine import DoesNotExist, NotUniqueError
 
 from digital_relay_server.api.models import models
 from digital_relay_server.api.security import authorizations
+from digital_relay_server.db import Team
 
 blueprint = Blueprint('api', __name__)
 api = Api(app=blueprint, title="DXC RUN 4U API", doc="/documentation")
 
 ns_auth = api.namespace('Auth', path='/auth', description='Security endpoints')
+ns_teams = api.namespace('Teams', path='/teams', description='Team management endpoints')
+
 auth_header_parser = api.parser()
 auth_header_parser.add_argument('Authorization', location='headers', required=True,
                                 help='JWT auth token, format: JWT <access_token>', default='JWT <access_token>')
@@ -17,7 +23,7 @@ user_login = ns_auth.model('Login request', models['user_login_model'])
 user_register = ns_auth.model('Register request', models['user_register_model'])
 user = ns_auth.model('User model', models['user_model'])
 jwt_response = ns_auth.model('JWT response', models['jwt_response_model'])
-jwt_unauthorized = ns_auth.model('Unauthorized response', models['jwt_unauthorized_model'])
+error = ns_auth.model('Error response', models['error_model'])
 security_bad_request = ns_auth.model('Bad security response', models['registration_error_keys_model'])
 response_meta = ns_auth.model('Response metadata', {'code': fields.Integer})
 registration_error_keys = ns_auth.model('Registration error keys', models['registration_error_keys_model'])
@@ -26,13 +32,15 @@ registration_response_body = ns_auth.model('Registration response body', {'user'
                                                                               registration_error_keys)})
 registration_response = ns_auth.model('Registration response', {'meta': fields.Nested(response_meta),
                                                                 'response': fields.Nested(registration_response_body)})
+team = ns_teams.model('Team model', models['team_model'])
+team_list = ns_teams.model('Teams list', {'teams': fields.List(fields.Nested(team))})
 
 
 @ns_auth.route('')
 class Login(Resource):
     @ns_auth.expect(user_login)
     @ns_auth.response(code=200, description='Login successful', model=jwt_response)
-    @ns_auth.response(code=401, description='Invalid credentials', model=jwt_unauthorized)
+    @ns_auth.response(code=401, description='Invalid credentials', model=error)
     def post(self):
         """Log in as an existing user"""
         # do nothing, auth is handled by flask-JWT endpoint, this is only for documentation
@@ -58,3 +66,58 @@ class HelloWorld(Resource):
     @ns_auth.expect(auth_header_parser)
     def get(self):
         return {'hello': current_identity.email}
+
+
+@ns_teams.route('')
+class Teams(Resource):
+    @ns_teams.expect(team)
+    @ns_teams.response(code=200, description='Team creation successful', model=team)
+    @ns_teams.response(code=400, description='Bad request', model=error)
+    @ns_teams.response(code=409, description='Team already exists', model=error)
+    def post(self):
+        """Creates a new team"""
+        data = request.json
+        try:
+            newTeam = Team(name=data['name'], members=data['members'])
+        except KeyError as e:
+            return marshal({"description": f'{e.args[0]} is a required parameter',
+                            "error": 'Missing required parameter',
+                            "status_code": 400}, error), 400
+        try:
+            response = newTeam.save()
+            return marshal(response, team), 200
+        except NotUniqueError:
+            return marshal({"description": f'Team named {newTeam.name} already exists',
+                            "error": 'Invalid team name',
+                            "status_code": 409}, error), 409
+
+    @jwt_required()
+    @ns_teams.doc(security=authorizations)
+    @ns_teams.expect(auth_header_parser)
+    @ns_teams.response(code=200, description='OK', model=team_list)
+    @ns_teams.response(code=401, description='Unauthorized', model=error)
+    def get(self):
+        """Retrieves all teams that the current user belongs to"""
+        teams = Team.objects(members=current_identity.email)
+        return marshal({'teams': teams}, team_list), 200
+
+
+# noinspection PyUnresolvedReferences
+@ns_teams.route('/<team_id>')
+class TeamResource(Resource):
+    @ns_teams.response(code=200, description='OK', model=team)
+    @ns_teams.response(code=400, description='Invalid ID', model=error)
+    @ns_teams.response(code=404, description='Team not found', model=error)
+    def get(self, team_id):
+        """Retrieve team information"""
+        try:
+            response = Team.objects.get(id=ObjectId(team_id))
+            return marshal(response, team), 200
+        except InvalidId:
+            return marshal({"description": f'{team_id} is not a valid ObjectID',
+                            "error": 'Invalid ID',
+                            "status_code": 400}, error), 400
+        except DoesNotExist:
+            return marshal({"description": f'Team with team ID {team_id} does not exist',
+                            "error": 'Not found',
+                            "status_code": 404}, error), 404
