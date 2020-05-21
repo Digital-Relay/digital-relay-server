@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 API_URL_PREFIX = '/api'
 # Generate a nice key using secrets.token_urlsafe()
@@ -13,6 +14,7 @@ SECURITY_REGISTER_URL = API_URL_PREFIX + '/auth/register'
 
 JWT_AUTH_URL_RULE = API_URL_PREFIX + '/auth'
 JWT_AUTH_USERNAME_KEY = 'email'
+JWT_EXPIRATION_DELTA = timedelta(minutes=30)
 
 SWAGGER_UI_DOC_EXPANSION = 'list'
 

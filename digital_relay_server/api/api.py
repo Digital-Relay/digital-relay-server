@@ -19,23 +19,23 @@ auth_header_parser = api.parser()
 auth_header_parser.add_argument('Authorization', location='headers', required=True,
                                 help='JWT auth token, format: JWT <access_token>', default='JWT <access_token>')
 
-user_login = ns_auth.model('Login request', models['user_login_model'])
-user_register = ns_auth.model('Register request', models['user_register_model'])
-user = ns_auth.model('User model', models['user_model'])
-jwt_response = ns_auth.model('JWT response', models['jwt_response_model'])
-error = ns_auth.model('Error response', models['error_model'])
-security_bad_request = ns_auth.model('Bad security response', models['registration_error_keys_model'])
-response_meta = ns_auth.model('Response metadata', {'code': fields.Integer})
-registration_error_keys = ns_auth.model('Registration error keys', models['registration_error_keys_model'])
-registration_response_body = ns_auth.model('Registration response body', {'csrf_token': fields.String,
-                                                                          'user': fields.Nested(user),
-                                                                          'errors': fields.Nested(
-                                                                              registration_error_keys)})
-registration_response = ns_auth.model('Registration response', {'meta': fields.Nested(response_meta),
-                                                                'response': fields.Nested(registration_response_body)})
-team = ns_teams.model('Team model', models['team_model'])
-team_list = ns_teams.model('Teams list', {'teams': fields.List(fields.Nested(team))})
-user_list = ns_teams.model('User list', {'users': fields.List(fields.Nested(user))})
+user_login = ns_auth.model('LoginRequest', models['user_login_model'])
+user_register = ns_auth.model('RegisterRequest', models['user_register_model'])
+user = ns_auth.model('User', models['user_model'])
+jwt_response = ns_auth.model('JWTResponse', models['jwt_response_model'])
+error = ns_auth.model('ErrorResponse', models['error_model'])
+security_bad_request = ns_auth.model('BadSecurityResponse', models['registration_error_keys_model'])
+response_meta = ns_auth.model('ResponseMetadata', {'code': fields.Integer})
+registration_error_keys = ns_auth.model('RegistrationErrorKeys', models['registration_error_keys_model'])
+registration_response_body = ns_auth.model('RegistrationResponseBody', {'csrf_token': fields.String,
+                                                                        'user': fields.Nested(user),
+                                                                        'errors': fields.Nested(
+                                                                            registration_error_keys)})
+registration_response = ns_auth.model('RegistrationResponse', {'meta': fields.Nested(response_meta),
+                                                               'response': fields.Nested(registration_response_body)})
+team = ns_teams.model('Team', models['team_model'])
+team_list = ns_teams.model('TeamsList', {'teams': fields.List(fields.Nested(team))})
+user_list = ns_teams.model('UserList', {'users': fields.List(fields.Nested(user))})
 
 
 @ns_auth.route('')
@@ -47,6 +47,15 @@ class Login(Resource):
         """Log in as an existing user"""
         # do nothing, auth is handled by flask-JWT endpoint, this is only for documentation
         pass
+
+    @jwt_required()
+    @ns_auth.doc(security=authorizations)
+    @ns_auth.expect(auth_header_parser)
+    @ns_auth.response(code=200, description='OK', model=user)
+    @ns_auth.response(code=401, description='Invalid credentials', model=error)
+    def get(self):
+        """Retrieve current user's info"""
+        return marshal(current_identity, user), 200
 
 
 @ns_auth.route('/register')
