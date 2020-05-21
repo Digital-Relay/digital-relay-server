@@ -1,4 +1,5 @@
 from flask import Flask, request
+from flask_cors import CORS
 from flask_jwt import JWT
 from flask_security import MongoEngineUserDatastore, Security
 
@@ -10,8 +11,10 @@ app = Flask(__name__)
 app.config.from_pyfile('config/config.py')
 config = app.config
 logger = app.logger
+CORS(app)
 
 db.init_app(app)
+
 
 def authenticate(email, password):
     user = user_datastore.get_user(email)
