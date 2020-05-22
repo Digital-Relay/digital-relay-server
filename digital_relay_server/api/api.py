@@ -1,10 +1,14 @@
+from datetime import datetime
+
 from bson import ObjectId
 from bson.errors import InvalidId
 from flask import Blueprint, request
-from flask_jwt import jwt_required, current_identity
+from flask_jwt_extended import jwt_required, create_access_token, decode_token, create_refresh_token, \
+    current_user
 from flask_restx import Resource, Api, fields, marshal
 from mongoengine import DoesNotExist, NotUniqueError
 
+from digital_relay_server import authenticate
 from digital_relay_server.api.models import models
 from digital_relay_server.api.security import authorizations
 from digital_relay_server.db import Team, User
@@ -22,7 +26,10 @@ auth_header_parser.add_argument('Authorization', location='headers', required=Tr
 user_login = ns_auth.model('LoginRequest', models['user_login_model'])
 user_register = ns_auth.model('RegisterRequest', models['user_register_model'])
 user = ns_auth.model('User', models['user_model'])
-jwt_response = ns_auth.model('JWTResponse', models['jwt_response_model'])
+jwt_response = ns_auth.model('JWTResponse', {'access_token': fields.String,
+                                             'refresh_token': fields.String,
+                                             'expires_at': fields.DateTime,
+                                             'user': fields.Nested(user)})
 error = ns_auth.model('ErrorResponse', models['error_model'])
 security_bad_request = ns_auth.model('BadSecurityResponse', models['registration_error_keys_model'])
 response_meta = ns_auth.model('ResponseMetadata', {'code': fields.Integer})
@@ -44,18 +51,34 @@ class Login(Resource):
     @ns_auth.response(code=200, description='Login successful', model=jwt_response)
     @ns_auth.response(code=401, description='Invalid credentials', model=error)
     def post(self):
-        """Log in as an existing user"""
-        # do nothing, auth is handled by flask-JWT endpoint, this is only for documentation
-        pass
+        if not request.is_json:
+            return marshal({"msg": "Missing JSON in request"}, error), 400
 
-    @jwt_required()
+        try:
+            email = request.json['email']
+            password = request.json['password']
+        except KeyError as e:
+            return marshal({"msg": f'{e.args[0]} is a required parameter'}, error), 400
+
+        logged_in_user = authenticate(email, password)
+        if not logged_in_user:
+            return marshal({"msg": 'Invalid credentials.'}, error), 401
+
+        access_token = create_access_token(identity=logged_in_user.email, fresh=True)
+        refresh_token = create_refresh_token(identity=logged_in_user.email)
+        return marshal({'access_token': access_token,
+                        'refresh_token': refresh_token,
+                        'expires_at': datetime.utcfromtimestamp(decode_token(access_token)['exp']),
+                        'user': logged_in_user}, jwt_response), 200
+
+    @jwt_required
     @ns_auth.doc(security=authorizations)
     @ns_auth.expect(auth_header_parser)
     @ns_auth.response(code=200, description='OK', model=user)
     @ns_auth.response(code=401, description='Invalid credentials', model=error)
     def get(self):
         """Retrieve current user's info"""
-        return marshal(current_identity, user), 200
+        return marshal(current_user, user), 200
 
 
 @ns_auth.route('/register')
@@ -72,16 +95,16 @@ class Register(Resource):
 @ns_auth.route('/hello')
 class HelloWorld(Resource):
 
-    @jwt_required()
+    @jwt_required
     @ns_auth.doc(security=authorizations)
     @ns_auth.expect(auth_header_parser)
     def get(self):
-        return {'hello': current_identity.email}
+        return {'hello': current_user.email}
 
 
 @ns_teams.route('')
 class Teams(Resource):
-    @jwt_required()
+    @jwt_required
     @ns_teams.doc(security=authorizations)
     @ns_teams.expect(auth_header_parser, team)
     @ns_teams.response(code=200, description='Team creation successful', model=team)
@@ -91,27 +114,23 @@ class Teams(Resource):
         """Create a new team"""
         data = request.json
         try:
-            new_team = Team(name=data['name'], members=data['members'] + [current_identity.email])
+            new_team = Team(name=data['name'], members=data['members'] + [current_user.email])
         except KeyError as e:
-            return marshal({"description": f'{e.args[0]} is a required parameter',
-                            "error": 'Missing required parameter',
-                            "status_code": 400}, error), 400
+            return marshal({"msg": f'{e.args[0]} is a required parameter'}, error), 400
         try:
             response = new_team.save()
             return marshal(response, team), 200
         except NotUniqueError:
-            return marshal({"description": f'Team named {new_team.name} already exists',
-                            "error": 'Invalid team name',
-                            "status_code": 409}, error), 409
+            return marshal({"msg": f'Team named {new_team.name} already exists'}, error), 409
 
-    @jwt_required()
+    @jwt_required
     @ns_teams.doc(security=authorizations)
     @ns_teams.expect(auth_header_parser)
     @ns_teams.response(code=200, description='OK', model=team_list)
     @ns_teams.response(code=401, description='Unauthorized', model=error)
     def get(self):
         """Retrieve all teams that the current user belongs to"""
-        teams = Team.objects(members=current_identity.email)
+        teams = Team.objects(members=current_user.email)
         return marshal({'teams': teams}, team_list), 200
 
 
@@ -127,13 +146,9 @@ class TeamResource(Resource):
             response = Team.objects.get(id=ObjectId(team_id))
             return marshal(response, team), 200
         except InvalidId:
-            return marshal({"description": f'{team_id} is not a valid ObjectID',
-                            "error": 'Invalid ID',
-                            "status_code": 400}, error), 400
+            return marshal({"msg": f'{team_id} is not a valid ObjectID'}, error), 400
         except DoesNotExist:
-            return marshal({"description": f'Team with team ID {team_id} does not exist',
-                            "error": 'Not found',
-                            "status_code": 404}, error), 404
+            return marshal({"msg": f'Team with team ID {team_id} does not exist'}, error), 404
 
 
 # noinspection PyUnresolvedReferences
@@ -156,10 +171,6 @@ class TeamMembers(Resource):
                 users.append(User(id='null', name='null', email=email))
             return marshal({'users': users}, user_list), 200
         except InvalidId:
-            return marshal({"description": f'{team_id} is not a valid ObjectID',
-                            "error": 'Invalid ID',
-                            "status_code": 400}, error), 400
+            return marshal({"msg": f'{team_id} is not a valid ObjectID'}, error), 400
         except DoesNotExist:
-            return marshal({"description": f'Team with team ID {team_id} does not exist',
-                            "error": 'Not found',
-                            "status_code": 404}, error), 404
+            return marshal({"msg": f'Team with team ID {team_id} does not exist'}, error), 404

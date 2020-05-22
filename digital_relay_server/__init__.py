@@ -1,6 +1,6 @@
-from flask import Flask, request
+from flask import Flask
 from flask_cors import CORS
-from flask_jwt import JWT
+from flask_jwt_extended import JWTManager
 from flask_security import MongoEngineUserDatastore, Security
 
 from digital_relay_server.api.models import init_models
@@ -12,8 +12,14 @@ app.config.from_pyfile('config/config.py')
 config = app.config
 logger = app.logger
 CORS(app)
+jwt = JWTManager(app)
 
 db.init_app(app)
+
+# Setup Flask-Security
+user_datastore = MongoEngineUserDatastore(db, User, Role)
+security = Security(app, user_datastore, register_form=ExtendedRegisterForm,
+                    confirm_register_form=ExtendedConfirmRegisterForm)
 
 
 def authenticate(email, password):
@@ -22,18 +28,12 @@ def authenticate(email, password):
         user.id = str(user.id)
         return user
 
-
-def identity(payload):
-    user_id = payload['identity']
-    return user_datastore.get_user(user_id)
+    return None
 
 
-# Setup Flask-Security
-user_datastore = MongoEngineUserDatastore(db, User, Role)
-security = Security(app, user_datastore, register_form=ExtendedRegisterForm,
-                    confirm_register_form=ExtendedConfirmRegisterForm)
-
-jwt = JWT(app, authenticate, identity)
+@jwt.user_loader_callback_loader
+def identity(jwt_identity):
+    return user_datastore.get_user(jwt_identity)
 
 
 # Create a user to test with
@@ -46,20 +46,4 @@ init_models(config)
 
 from digital_relay_server.api.api import blueprint
 
-
-def register_blueprints(app):
-    app.register_blueprint(blueprint, url_prefix=config['API_URL_PREFIX'])
-
-
-register_blueprints(app)
-
-
-@app.route('/authtest', methods=['POST'])
-def authenticatetest():
-    req = request.json
-    username = req['email']
-    password = req['password']
-    user = user_datastore.get_user(username)
-    print(user)
-    if user and user.verify_and_update_password(password):
-        return dict(user)
+app.register_blueprint(blueprint, url_prefix=config['API_URL_PREFIX'])

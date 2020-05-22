@@ -7,10 +7,7 @@ def init_models(config):
     models['user_login_model'] = {'email': fields.String(max_length=config["EMAIL_MAX_LENGTH"], required=True),
                                   'password': fields.String(max_length=config["PASSWORD_MAX_LENGTH"], required=True)}
 
-    models['jwt_response_model'] = {'access_token': fields.String(required=True)}
-    models['error_model'] = {"description": fields.String(),
-                             "error": fields.String(),
-                             "status_code": fields.Integer()}
+    models['error_model'] = {"msg": fields.String()}
     models['user_register_model'] = {'email': fields.String(max_length=config["EMAIL_MAX_LENGTH"], required=True),
                                      'name': fields.String(max_length=config["NAME_MAX_LENGTH"], required=True),
                                      'password': fields.String(max_length=config["PASSWORD_MAX_LENGTH"], required=True)}
