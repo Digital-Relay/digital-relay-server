@@ -3,7 +3,6 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_security import MongoEngineUserDatastore, Security
 
-from digital_relay_server.api.models import init_models
 from digital_relay_server.api.security import ExtendedRegisterForm, ExtendedConfirmRegisterForm
 from digital_relay_server.db import db, User, Role
 
@@ -41,8 +40,6 @@ def identity(jwt_identity):
 def create_user():
     user_datastore.create_user(email='matt@nobien.net', password='password')
 
-
-init_models(config)
 
 from digital_relay_server.api.api import blueprint
 

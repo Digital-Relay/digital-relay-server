@@ -1,6 +1,6 @@
 from flask_mongoengine import MongoEngine
 from flask_security import RoleMixin, UserMixin
-from mongoengine import StringField, BooleanField, DateTimeField, ListField, ReferenceField, Document
+from mongoengine import StringField, BooleanField, DateTimeField, ListField, ReferenceField, Document, FloatField
 
 from digital_relay_server.config.config import *
 
@@ -19,12 +19,14 @@ class User(Document, UserMixin):
     confirmed_at = DateTimeField()
     roles = ListField(ReferenceField(Role), default=[])
     name = StringField(max_length=NAME_MAX_LENGTH)
+    tempo = FloatField(min_value=0)
 
     def get_security_payload(self):
         return {
             'id': str(self.id),
             'name': self.name,
-            'email': self.email
+            'email': self.email,
+            'tempo': self.tempo
         }
 
 
