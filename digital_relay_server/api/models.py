@@ -21,7 +21,7 @@ class Models:
     def __init__(self, ns_auth: Namespace, ns_teams: Namespace):
         user_register_model = {'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True),
                                'name': fields.String(max_length=NAME_MAX_LENGTH, required=True),
-                               'tempo': fields.Float(min=0, required=True),
+                               'tempo': fields.Integer(min=0, required=True, description='Runners tempo, in secs/km'),
                                'password': fields.String(max_length=PASSWORD_MAX_LENGTH, required=True)}
 
         registration_error_keys = {}
