@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_mail import Mail
 from flask_security import MongoEngineUserDatastore, Security
 
 from digital_relay_server.api.security import ExtendedRegisterForm, ExtendedConfirmRegisterForm
@@ -12,8 +13,10 @@ config = app.config
 logger = app.logger
 CORS(app)
 jwt = JWTManager(app)
+mail = Mail()
 
 db.init_app(app)
+mail.init_app(app)
 
 # Setup Flask-Security
 user_datastore = MongoEngineUserDatastore(db, User, Role)
