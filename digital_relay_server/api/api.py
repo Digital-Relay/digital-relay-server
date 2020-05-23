@@ -1,16 +1,14 @@
-from datetime import datetime
-
 from bson import ObjectId
 from bson.errors import InvalidId
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required, create_access_token, decode_token, create_refresh_token, \
-    current_user
+from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, \
+    current_user, jwt_refresh_token_required
 from flask_restx import Resource, Api, marshal
 from mongoengine import DoesNotExist, NotUniqueError
 
 from digital_relay_server import authenticate
 from digital_relay_server.api.models import Models
-from digital_relay_server.api.security import authorizations
+from digital_relay_server.api.security import authorizations, expiry_date_from_token
 from digital_relay_server.db import Team, User
 
 blueprint = Blueprint('api', __name__)
@@ -20,9 +18,14 @@ ns_auth = api.namespace('Auth', path='/auth', description='Security endpoints')
 ns_teams = api.namespace('Teams', path='/teams', description='Team management endpoints')
 team_id_in_route = '<team_id>'
 
-auth_header_parser = api.parser()
-auth_header_parser.add_argument('Authorization', location='headers', required=True,
-                                help='JWT auth token, format: JWT <access_token>', default='JWT <access_token>')
+auth_header_jwt_parser = api.parser()
+auth_header_jwt_parser.add_argument('Authorization', location='headers', required=True,
+                                    help='JWT auth token, format: JWT <access_token>', default='JWT <access_token>')
+
+auth_header_jwt_refresh_parser = api.parser()
+auth_header_jwt_refresh_parser.add_argument('Authorization', location='headers', required=True,
+                                            help='JWT refresh token, format: JWT <refresh_token>',
+                                            default='JWT <refresh_token>')
 
 models = Models(ns_auth=ns_auth, ns_teams=ns_teams)
 
@@ -33,6 +36,7 @@ class Login(Resource):
     @ns_auth.response(code=200, description='Login successful', model=models.jwt_response)
     @ns_auth.response(code=401, description='Invalid credentials', model=models.error)
     def post(self):
+        """Login as existing user"""
         if not request.is_json:
             return marshal({"msg": "Missing JSON in request"}, models.error), 400
 
@@ -50,12 +54,12 @@ class Login(Resource):
         refresh_token = create_refresh_token(identity=logged_in_user.email)
         return marshal({'access_token': access_token,
                         'refresh_token': refresh_token,
-                        'expires_at': datetime.utcfromtimestamp(decode_token(access_token)['exp']),
+                        'expires_at': expiry_date_from_token(access_token),
                         'user': logged_in_user}, models.jwt_response), 200
 
     @jwt_required
     @ns_auth.doc(security=authorizations)
-    @ns_auth.expect(auth_header_parser)
+    @ns_auth.expect(auth_header_jwt_parser)
     @ns_auth.response(code=200, description='OK', model=models.user)
     @ns_auth.response(code=401, description='Invalid credentials', model=models.error)
     def get(self):
@@ -74,12 +78,27 @@ class Register(Resource):
         pass
 
 
+@ns_auth.route('/refresh_token')
+class TokenRefresh(Resource):
+    @jwt_refresh_token_required
+    @ns_auth.doc(security=authorizations)
+    @ns_auth.expect(auth_header_jwt_refresh_parser)
+    @ns_auth.response(code=200, description='Token refresh successful', model=models.jwt_refresh_response)
+    @ns_auth.response(code=401, description='Invalid token', model=models.error)
+    @ns_auth.response(code=422, description='Invalid token', model=models.error)
+    def get(self):
+        """Get a new access token"""
+        access_token = create_access_token(current_user.email)
+        return marshal({'access_token': access_token,
+                        'expires_at': expiry_date_from_token(access_token)}, models.jwt_refresh_response), 200
+
+
 @ns_auth.route('/hello')
 class HelloWorld(Resource):
 
     @jwt_required
     @ns_auth.doc(security=authorizations)
-    @ns_auth.expect(auth_header_parser)
+    @ns_auth.expect(auth_header_jwt_parser)
     def get(self):
         return {'hello': current_user.email}
 
@@ -88,7 +107,7 @@ class HelloWorld(Resource):
 class Teams(Resource):
     @jwt_required
     @ns_teams.doc(security=authorizations)
-    @ns_teams.expect(auth_header_parser, models.team)
+    @ns_teams.expect(auth_header_jwt_parser, models.team)
     @ns_teams.response(code=200, description='Team creation successful', model=models.team)
     @ns_teams.response(code=400, description='Bad request', model=models.error)
     @ns_teams.response(code=409, description='Team already exists', model=models.error)
@@ -107,7 +126,7 @@ class Teams(Resource):
 
     @jwt_required
     @ns_teams.doc(security=authorizations)
-    @ns_teams.expect(auth_header_parser)
+    @ns_teams.expect(auth_header_jwt_parser)
     @ns_teams.response(code=200, description='OK', model=models.team_list)
     @ns_teams.response(code=401, description='Unauthorized', model=models.error)
     def get(self):

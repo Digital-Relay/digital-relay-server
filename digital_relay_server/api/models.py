@@ -8,6 +8,7 @@ class Models:
     user_register = None
     user = None
     jwt_response = None
+    jwt_refresh_response = None
     error = None
     security_bad_request = None
     response_meta = None
@@ -36,10 +37,12 @@ class Models:
                                            'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True),
                                            'name': fields.String(max_length=NAME_MAX_LENGTH, required=True),
                                            'tempo': fields.Float(min=0, required=True)})
-        self.jwt_response = ns_auth.model('JWTResponse', {'access_token': fields.String,
+        self.jwt_response = ns_auth.model('JWTResponse', {'access_token': fields.String(required=True),
                                                           'refresh_token': fields.String,
-                                                          'expires_at': fields.DateTime,
+                                                          'expires_at': fields.DateTime(required=True),
                                                           'user': fields.Nested(self.user)})
+        self.jwt_refresh_response = ns_auth.model('JWTRefreshResponse', {'access_token': fields.String(required=True),
+                                                                         'expires_at': fields.DateTime(required=True)})
         self.error = ns_auth.model('ErrorResponse', {"msg": fields.String()})
 
         self.security_bad_request = ns_auth.model('BadSecurityResponse', registration_error_keys)
