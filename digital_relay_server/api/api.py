@@ -50,6 +50,9 @@ class Login(Resource):
         if not logged_in_user:
             return marshal({"msg": 'Invalid credentials.'}, models.error), 401
 
+        if not logged_in_user.confirmed_at:
+            return marshal({"msg": 'Email not confirmed'}, models.error), 401
+
         access_token = create_access_token(identity=logged_in_user.email, fresh=True)
         refresh_token = create_refresh_token(identity=logged_in_user.email)
         return marshal({'access_token': access_token,

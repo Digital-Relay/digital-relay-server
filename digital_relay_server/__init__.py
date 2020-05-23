@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_mail import Mail
 from flask_security import MongoEngineUserDatastore, Security
 
 from digital_relay_server.api.security import ExtendedRegisterForm, ExtendedConfirmRegisterForm
@@ -12,8 +13,10 @@ config = app.config
 logger = app.logger
 CORS(app)
 jwt = JWTManager(app)
+mail = Mail()
 
 db.init_app(app)
+mail.init_app(app)
 
 # Setup Flask-Security
 user_datastore = MongoEngineUserDatastore(db, User, Role)
@@ -33,12 +36,6 @@ def authenticate(email, password):
 @jwt.user_loader_callback_loader
 def identity(jwt_identity):
     return user_datastore.get_user(jwt_identity)
-
-
-# Create a user to test with
-# @app.before_first_request
-def create_user():
-    user_datastore.create_user(email='matt@nobien.net', password='password')
 
 
 from digital_relay_server.api.api import blueprint

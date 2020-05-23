@@ -6,10 +6,21 @@ SECRET_KEY = os.environ.get("SECRET_KEY", 'pf9Wkove4IKEAXvy-cQkeDPhv9Cb3Ag-wyJIL
 # Bcrypt is set as default SECURITY_PASSWORD_HASH, which requires a salt
 # Generate a good salt using: secrets.SystemRandom().getrandbits(128)
 SECURITY_PASSWORD_SALT = os.environ.get("SECURITY_PASSWORD_SALT", '146585145368132386173505678016728509634')
-WTF_CSRF_ENABLED = False
-SECURITY_SEND_REGISTER_EMAIL = False
+SECURITY_SEND_REGISTER_EMAIL = True
 SECURITY_REGISTERABLE = True
 SECURITY_REGISTER_URL = API_URL_PREFIX + '/auth/register'
+SECURITY_EMAIL_SENDER = 'info@dxcrun.eu'
+SECURITY_CONFIRMABLE = True
+SECURITY_POST_CONFIRM_VIEW = os.environ.get('APP_URL', 'http://localhost:4200') + '/login?emailConfirmed=1'
+SECURITY_EMAIL_SUBJECT_CONFIRM = 'DXC RUN 4U - Potvrdenie e-mailovej adresy'
+SECURITY_EMAIL_SUBJECT_REGISTER = 'DXC RUN 4U - Registrácia'
+
+MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
+MAIL_PORT = int(os.environ.get('MAIL_PORT', 25))
+MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'username')
+MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'password')
+
+WTF_CSRF_ENABLED = False
 
 JWT_SECRET_KEY = 'pf9Wkove4IKEAXvy-cQkeDPhv9Cb3Ag-wyJILbq_dFw'
 JWT_HEADER_TYPE = 'JWT'

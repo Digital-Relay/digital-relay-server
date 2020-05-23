@@ -4,6 +4,11 @@ ENV server_timeout 30
 ENV server_workers 3
 ENV MONGODB_HOST localhost
 ENV MONGODB_PORT 27017
+ENV APP_URL http://localhost:4200
+ENV MAIL_SERVER = localhost
+ENV MAIL_PORT = 25
+ENV MAIL_USERNAME username
+ENV MAIL_PASSWORD password
 COPY . /digital-relay/
 WORKDIR /digital-relay
 RUN pip install -r requirements.txt
