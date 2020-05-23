@@ -38,12 +38,6 @@ def identity(jwt_identity):
     return user_datastore.get_user(jwt_identity)
 
 
-# Create a user to test with
-# @app.before_first_request
-def create_user():
-    user_datastore.create_user(email='matt@nobien.net', password='password')
-
-
 from digital_relay_server.api.api import blueprint
 
 app.register_blueprint(blueprint, url_prefix=config['API_URL_PREFIX'])

@@ -17,6 +17,8 @@ SECURITY_EMAIL_SUBJECT_REGISTER = 'DXC RUN 4U - Registrácia'
 
 MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
 MAIL_PORT = int(os.environ.get('MAIL_PORT', 25))
+MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'username')
+MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'password')
 
 WTF_CSRF_ENABLED = False
 
