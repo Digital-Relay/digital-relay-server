@@ -1,5 +1,4 @@
 import os
-from datetime import timedelta
 
 API_URL_PREFIX = '/api'
 # Generate a nice key using secrets.token_urlsafe()
@@ -12,9 +11,8 @@ SECURITY_SEND_REGISTER_EMAIL = False
 SECURITY_REGISTERABLE = True
 SECURITY_REGISTER_URL = API_URL_PREFIX + '/auth/register'
 
-JWT_AUTH_URL_RULE = API_URL_PREFIX + '/auth'
-JWT_AUTH_USERNAME_KEY = 'email'
-JWT_EXPIRATION_DELTA = timedelta(minutes=30)
+JWT_SECRET_KEY = 'pf9Wkove4IKEAXvy-cQkeDPhv9Cb3Ag-wyJILbq_dFw'
+JWT_HEADER_TYPE = 'JWT'
 
 SWAGGER_UI_DOC_EXPANSION = 'list'
 

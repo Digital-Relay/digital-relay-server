@@ -2,7 +2,7 @@ Flask~=1.1.2
 email_validator
 bcrypt
 flask_restx
-flask_jwt
+flask-jwt-extended
 Flask_Security_Too
 flask_mongoengine
 Flask-Cors
