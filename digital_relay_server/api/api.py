@@ -113,6 +113,7 @@ class Teams(Resource):
     @ns_teams.expect(auth_header_jwt_parser, models.team)
     @ns_teams.response(code=200, description='Team creation successful', model=models.team)
     @ns_teams.response(code=400, description='Bad request', model=models.error)
+    @ns_teams.response(code=401, description='Unauthorized', model=models.error)
     @ns_teams.response(code=409, description='Team already exists', model=models.error)
     def post(self):
         """Create a new team"""
@@ -152,6 +153,33 @@ class TeamResource(Resource):
             return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
         except DoesNotExist:
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
+
+    @jwt_required
+    @ns_teams.doc(security=authorizations)
+    @ns_teams.expect(auth_header_jwt_parser, models.team)
+    @ns_teams.response(code=200, description='Team update successful', model=models.team)
+    @ns_teams.response(code=400, description='Bad request', model=models.error)
+    @ns_teams.response(code=401, description='Unauthorized', model=models.error)
+    @ns_teams.response(code=404, description='Team not found', model=models.error)
+    @ns_teams.response(code=409, description='Team name already exists', model=models.error)
+    def post(self, team_id):
+        """Update team information"""
+        data = request.json
+        if team_id != data['id']:
+            return marshal({"msg": 'Team IDs in URL and request do not match'}, models.error), 400
+        try:
+            team = Team.objects.get(id=ObjectId(team_id))
+        except InvalidId:
+            return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
+        except DoesNotExist:
+            return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
+        team.name = data['name']
+        team.members = data['members']
+        try:
+            response = team.save()
+            return marshal(response, models.team), 200
+        except NotUniqueError:
+            return marshal({"msg": f'Team named {team.name} already exists'}, models.error), 409
 
 
 @ns_teams.route(f'/{team_id_in_route}/users')
