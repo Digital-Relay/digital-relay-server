@@ -59,6 +59,7 @@ class Models:
                                             'name': fields.String(max_length=TEAM_NAME_MAX_LENGTH, required=True),
                                             # 'url_safe_name': fields.String(max_length=config["TEAM_URL_MAX_LENGTH"]),
                                             'members': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH),
-                                                                   required=True)})
+                                                                   required=True),
+                                            'stages': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH))})
         self.team_list = ns_teams.model('TeamsList', {'teams': fields.List(fields.Nested(self.team))})
         self.user_list = ns_teams.model('UserList', {'users': fields.List(fields.Nested(self.user))})

@@ -1,3 +1,5 @@
+import math
+
 from flask_mongoengine import MongoEngine
 from flask_security import RoleMixin, UserMixin
 from mongoengine import StringField, BooleanField, DateTimeField, ListField, ReferenceField, Document, IntField
@@ -33,4 +35,16 @@ class User(Document, UserMixin):
 class Team(Document):
     name = StringField(max_length=TEAM_NAME_MAX_LENGTH, unique=True)
     members = ListField(StringField(max_length=EMAIL_MAX_LENGTH))
+    stages = ListField(StringField())
 
+    def check_stages_validity(self, participants):
+        if len(participants) != len(self.stages):
+            return False
+        for p in participants:
+            if p not in self.members:
+                raise ValueError(p)
+        return True
+
+    def set_default_stages(self):
+        self.stages = self.members * math.ceil(NUMBER_OF_STAGES / len(self.members))
+        self.stages = self.stages[:NUMBER_OF_STAGES]

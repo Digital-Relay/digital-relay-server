@@ -122,6 +122,18 @@ class Teams(Resource):
             new_team = Team(name=data['name'], members=data['members'] + [current_user.email])
         except KeyError as e:
             return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
+
+        new_team.set_default_stages()
+        try:
+            if new_team.check_stages_validity(data['stages']):
+                new_team.stages = data['stages']
+            else:
+                return marshal({"msg": 'Stage count mismatch'}, models.error), 400
+        except ValueError as e:
+            return marshal({"msg": f'{e.args[0]} is not a member of this team'}, models.error), 400
+        except KeyError:
+            pass
+
         try:
             response = new_team.save()
             return marshal(response, models.team), 200
@@ -175,6 +187,17 @@ class TeamResource(Resource):
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
         team.name = data['name']
         team.members = data['members']
+        try:
+            if team.check_stages_validity(data['stages']):
+                team.stages = data['stages']
+            else:
+                return marshal({"msg": 'Stage count mismatch'}, models.error), 400
+        except ValueError as e:
+            return marshal({"msg": f'{e.args[0]} is not a member of this team'}, models.error), 400
+        except KeyError:
+            pass
+        if not team.stages:
+            team.set_default_stages()
         try:
             response = team.save()
             return marshal(response, models.team), 200
