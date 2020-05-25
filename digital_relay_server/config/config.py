@@ -17,8 +17,8 @@ SECURITY_EMAIL_SUBJECT_REGISTER = 'DXC RUN 4U - Registrácia'
 
 MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
 MAIL_PORT = int(os.environ.get('MAIL_PORT', 25))
-MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'username')
-MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'password')
+MAIL_USERNAME = os.environ.get('MAIL_USERNAME', None)
+MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', None)
 
 WTF_CSRF_ENABLED = False
 
@@ -36,3 +36,5 @@ PASSWORD_MAX_LENGTH = 128
 NAME_MAX_LENGTH = 255
 TEAM_NAME_MAX_LENGTH = 255
 TEAM_URL_MAX_LENGTH = 255
+
+NUMBER_OF_STAGES = 20
