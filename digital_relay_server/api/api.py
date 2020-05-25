@@ -227,3 +227,35 @@ class TeamMembers(Resource):
             return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
         except DoesNotExist:
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
+
+
+@ns_teams.route(f'/{team_id_in_route}/stages')
+class Stages(Resource):
+    @ns_teams.expect(models.edit_stages_request)
+    @ns_teams.response(code=200, description='OK')
+    @ns_teams.response(code=400, description='Invalid ID', model=models.error)
+    @ns_teams.response(code=404, description='Team not found', model=models.error)
+    def post(self, team_id):
+        """Edit stages assignment"""
+        data = request.json
+        try:
+            team = Team.objects.get(id=ObjectId(team_id))
+
+        except InvalidId:
+            return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
+        except DoesNotExist:
+            return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
+
+        for stage in data['stages']:
+            try:
+                if stage['email'] in team.members:
+                    team.stages[stage.index] = stage['email']
+                else:
+                    return marshal({"msg": f'{stage["email"]} is not a member of this team'}, models.error), 400
+            except KeyError as e:
+                return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
+            except IndexError:
+                return marshal({"msg": 'Stage index out of range'}, models.error), 400
+
+        team.save()
+        return 'OK', 200
