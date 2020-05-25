@@ -39,7 +39,7 @@ class Models:
                                            'tempo': fields.Float(min=0, required=True)})
         self.jwt_response = ns_auth.model('JWTResponse', {'access_token': fields.String(required=True),
                                                           'refresh_token': fields.String,
-                                                          'expires_at': fields.DateTime(required=True),
+                                                          'expires_at': fields.Integer(required=True),
                                                           'user': fields.Nested(self.user)})
         self.jwt_refresh_response = ns_auth.model('JWTRefreshResponse', {'access_token': fields.String(required=True),
                                                                          'expires_at': fields.DateTime(required=True)})

@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from flask_jwt_extended import decode_token
 from flask_security import RegisterForm, ConfirmRegisterForm
 from wtforms import StringField, IntegerField
@@ -25,4 +23,4 @@ class ExtendedConfirmRegisterForm(ConfirmRegisterForm):
 
 
 def expiry_date_from_token(token):
-    return datetime.utcfromtimestamp(decode_token(token)['exp'])
+    return decode_token(token)['exp']
