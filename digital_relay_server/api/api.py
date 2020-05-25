@@ -86,14 +86,16 @@ class TokenRefresh(Resource):
     @jwt_refresh_token_required
     @ns_auth.doc(security=authorizations)
     @ns_auth.expect(auth_header_jwt_refresh_parser)
-    @ns_auth.response(code=200, description='Token refresh successful', model=models.jwt_refresh_response)
+    @ns_auth.response(code=200, description='Token refresh successful', model=models.jwt_response)
     @ns_auth.response(code=401, description='Invalid token', model=models.error)
     @ns_auth.response(code=422, description='Invalid token', model=models.error)
     def get(self):
         """Get a new access token"""
         access_token = create_access_token(current_user.email)
         return marshal({'access_token': access_token,
-                        'expires_at': expiry_date_from_token(access_token)}, models.jwt_refresh_response), 200
+                        'refresh_token': None,
+                        'expires_at': expiry_date_from_token(access_token),
+                        'user': current_user}, models.jwt_response), 200
 
 
 @ns_auth.route('/hello')
