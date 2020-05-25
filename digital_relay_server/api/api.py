@@ -30,16 +30,25 @@ auth_header_jwt_refresh_parser.add_argument('Authorization', location='headers',
 models = Models(ns_auth=ns_auth, ns_teams=ns_teams)
 
 
+def json_payload_required(func):
+    def check(*args, **kwargs):
+        if not request.is_json:
+            return marshal({"msg": "Missing JSON in request"}, models.error), 400
+        return func(*args, **kwargs)
+
+    check.__doc__ = func.__doc__
+    check.__name__ = func.__name__
+    return check
+
+
 @ns_auth.route('')
 class Login(Resource):
     @ns_auth.expect(models.user_login)
     @ns_auth.response(code=200, description='Login successful', model=models.jwt_response)
     @ns_auth.response(code=401, description='Invalid credentials', model=models.error)
+    @json_payload_required
     def post(self):
         """Login as existing user"""
-        if not request.is_json:
-            return marshal({"msg": "Missing JSON in request"}, models.error), 400
-
         try:
             email = request.json['email']
             password = request.json['password']
@@ -115,6 +124,7 @@ class Teams(Resource):
     @ns_teams.response(code=400, description='Bad request', model=models.error)
     @ns_teams.response(code=401, description='Unauthorized', model=models.error)
     @ns_teams.response(code=409, description='Team already exists', model=models.error)
+    @json_payload_required
     def post(self):
         """Create a new team"""
         data = request.json
@@ -174,6 +184,7 @@ class TeamResource(Resource):
     @ns_teams.response(code=401, description='Unauthorized', model=models.error)
     @ns_teams.response(code=404, description='Team not found', model=models.error)
     @ns_teams.response(code=409, description='Team name already exists', model=models.error)
+    @json_payload_required
     def post(self, team_id):
         """Update team information"""
         data = request.json
@@ -231,7 +242,10 @@ class TeamMembers(Resource):
 
 @ns_teams.route(f'/{team_id_in_route}/stages')
 class Stages(Resource):
-    @ns_teams.expect(models.edit_stages_request)
+    @jwt_required
+    @json_payload_required
+    @ns_auth.doc(security=authorizations)
+    @ns_teams.expect(auth_header_jwt_parser, models.edit_stages_request)
     @ns_teams.response(code=200, description='OK')
     @ns_teams.response(code=400, description='Invalid ID', model=models.error)
     @ns_teams.response(code=404, description='Team not found', model=models.error)
