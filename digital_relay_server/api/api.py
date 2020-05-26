@@ -135,10 +135,9 @@ class Teams(Resource):
 
         new_team.set_default_stages()
         try:
-            if new_team.check_stages_validity(data['stages']):
-                new_team.stages = data['stages']
-            else:
-                return marshal({"msg": 'Stage count mismatch'}, models.error), 400
+            new_team.stages = data['stages']
+        except IndexError:
+            return marshal({"msg": 'Stage count mismatch'}, models.error), 400
         except ValueError as e:
             return marshal({"msg": f'{e.args[0]} is not a member of this team'}, models.error), 400
         except KeyError:
@@ -197,12 +196,16 @@ class TeamResource(Resource):
         except DoesNotExist:
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
         team.name = data['name']
-        team.members = data['members']
         try:
-            if team.check_stages_validity(data['stages']):
-                team.stages = data['stages']
-            else:
-                return marshal({"msg": 'Stage count mismatch'}, models.error), 400
+            if not data['members']:
+                data['members'] = [current_user.email]
+            team.members = data['members']
+        except KeyError:
+            pass
+        try:
+            team.stages = data['stages']
+        except IndexError:
+            return marshal({"msg": 'Stage count mismatch'}, models.error), 400
         except ValueError as e:
             return marshal({"msg": f'{e.args[0]} is not a member of this team'}, models.error), 400
         except KeyError:
@@ -243,12 +246,12 @@ class TeamMembers(Resource):
 @ns_teams.route(f'/{team_id_in_route}/stages')
 class Stages(Resource):
     @jwt_required
-    @json_payload_required
     @ns_auth.doc(security=authorizations)
     @ns_teams.expect(auth_header_jwt_parser, models.edit_stages_request)
     @ns_teams.response(code=200, description='OK')
     @ns_teams.response(code=400, description='Invalid ID', model=models.error)
     @ns_teams.response(code=404, description='Team not found', model=models.error)
+    @json_payload_required
     def post(self, team_id):
         """Edit stages assignment"""
         data = request.json
@@ -263,7 +266,7 @@ class Stages(Resource):
         for stage in data['stages']:
             try:
                 if stage['email'] in team.members:
-                    team.stages[stage.index] = stage['email']
+                    team.stages[stage['index']] = stage['email']
                 else:
                     return marshal({"msg": f'{stage["email"]} is not a member of this team'}, models.error), 400
             except KeyError as e:

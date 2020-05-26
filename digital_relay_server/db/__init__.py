@@ -34,16 +34,34 @@ class User(Document, UserMixin):
 
 class Team(Document):
     name = StringField(max_length=TEAM_NAME_MAX_LENGTH, unique=True)
-    members = ListField(StringField(max_length=EMAIL_MAX_LENGTH))
-    stages = ListField(StringField())
+    _members = ListField(StringField(max_length=EMAIL_MAX_LENGTH), db_field='members')
+    _stages = ListField(StringField(), db_field='stages')
 
-    def check_stages_validity(self, participants):
+    @property
+    def members(self):
+        return self._members
+
+    @members.setter
+    def members(self, mems):
+        for i, stage in enumerate(self.stages):
+            if stage not in mems:
+                self.stages[i] = mems[0]
+
+        self._members = mems
+
+    @property
+    def stages(self):
+        return self._stages
+
+    @stages.setter
+    def stages(self, participants):
         if len(participants) != len(self.stages):
-            return False
+            raise IndexError
         for p in participants:
             if p not in self.members:
                 raise ValueError(p)
-        return True
+
+        self._stages = participants
 
     def set_default_stages(self):
         self.stages = self.members * math.ceil(NUMBER_OF_STAGES / len(self.members))
