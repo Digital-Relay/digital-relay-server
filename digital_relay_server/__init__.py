@@ -41,7 +41,6 @@ def identity(jwt_identity):
 def send_email_invites(recipients=None, author=None, team_name=None, team_link=None):
     with mail.connect() as connection:
         for recipient in recipients:
-            print('sending invite')
             message = Message(subject=config['INVITE_SUBJECT'], recipients=[recipient])
             message.html = render_template('invite.html', author=author, team_name=team_name, team_link=team_link)
 
