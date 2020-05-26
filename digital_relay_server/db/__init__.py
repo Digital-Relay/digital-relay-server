@@ -80,5 +80,4 @@ class Team(Document):
         return users
 
     def set_default_stages(self):
-        self.stages = self.members * math.ceil(NUMBER_OF_STAGES / len(self.members))
-        self.stages = self.stages[:NUMBER_OF_STAGES]
+        self._stages = (self.members * math.ceil(NUMBER_OF_STAGES / len(self.members)))[:NUMBER_OF_STAGES]

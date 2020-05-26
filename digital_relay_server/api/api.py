@@ -131,7 +131,7 @@ class Teams(Resource):
         """Create a new team"""
         data = request.json
         try:
-            new_team = Team(name=data['name'], members=data['members'] + [current_user.email])
+            new_team = Team(name=data['name'], _members=data['members'] + [current_user.email])
         except KeyError as e:
             return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
 
@@ -147,6 +147,7 @@ class Teams(Resource):
 
         try:
             response = new_team.save()
+            send_email_invites(recipients=data['members'], author=current_user.name, team_name=new_team.name, team_link=new_team.url)
             return marshal(response, models.team), 200
         except NotUniqueError:
             return marshal({"msg": f'Team named {new_team.name} already exists'}, models.error), 409

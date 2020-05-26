@@ -17,6 +17,12 @@ SECURITY_EMAIL_SUBJECT_REGISTER = 'DXC RUN 4U - Registrácia'
 
 MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
 MAIL_PORT = int(os.environ.get('MAIL_PORT', 25))
+MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'False') == "True"
+MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'False') == "True"
+try:
+    MAIL_MAX_EMAILS = int(os.environ.get('MAIL_MAX_EMAILS', None))
+except TypeError:
+    MAIL_MAX_EMAILS = None
 MAIL_USERNAME = os.environ.get('MAIL_USERNAME', None)
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', None)
 MAIL_DEFAULT_SENDER = ('DXC RUN 4U', 'info@dxcrun.eu')
