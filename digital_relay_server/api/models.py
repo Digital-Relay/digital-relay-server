@@ -4,21 +4,6 @@ from digital_relay_server.config.config import *
 
 
 class Models:
-    user_login = None
-    user_register = None
-    user = None
-    jwt_response = None
-    jwt_refresh_response = None
-    error = None
-    security_bad_request = None
-    response_meta = None
-    registration_error_keys = None
-    registration_response_body = None
-    registration_response = None
-    team = None
-    team_list = None
-    user_list = None
-
     def __init__(self, ns_auth: Namespace, ns_teams: Namespace):
         user_register_model = {'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True),
                                'name': fields.String(max_length=NAME_MAX_LENGTH, required=True),
@@ -63,3 +48,10 @@ class Models:
                                             'stages': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH))})
         self.team_list = ns_teams.model('TeamsList', {'teams': fields.List(fields.Nested(self.team))})
         self.user_list = ns_teams.model('UserList', {'users': fields.List(fields.Nested(self.user))})
+        self.stage = ns_teams.model(name='Stage',
+                                    model={'index': fields.Integer(min=0, max=NUMBER_OF_STAGES, required=True),
+                                           'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True)})
+        self.edit_stages_request = ns_teams.model('EditStagesRequest',
+                                                  {'stages': fields.List(fields.Nested(self.stage))})
+        self.add_members_request = ns_teams.model('AddMembersRequest', {
+            'members': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH), required=True)})

@@ -1,6 +1,7 @@
 import os
 
 API_URL_PREFIX = '/api'
+APP_URL = os.environ.get('APP_URL', 'http://localhost:4200')
 # Generate a nice key using secrets.token_urlsafe()
 SECRET_KEY = os.environ.get("SECRET_KEY", 'pf9Wkove4IKEAXvy-cQkeDPhv9Cb3Ag-wyJILbq_dFw')
 # Bcrypt is set as default SECURITY_PASSWORD_HASH, which requires a salt
@@ -9,9 +10,8 @@ SECURITY_PASSWORD_SALT = os.environ.get("SECURITY_PASSWORD_SALT", '1465851453681
 SECURITY_SEND_REGISTER_EMAIL = True
 SECURITY_REGISTERABLE = True
 SECURITY_REGISTER_URL = API_URL_PREFIX + '/auth/register'
-SECURITY_EMAIL_SENDER = 'info@dxcrun.eu'
 SECURITY_CONFIRMABLE = True
-SECURITY_POST_CONFIRM_VIEW = os.environ.get('APP_URL', 'http://localhost:4200') + '/login?emailConfirmed=1'
+SECURITY_POST_CONFIRM_VIEW = APP_URL + '/login?emailConfirmed=1'
 SECURITY_EMAIL_SUBJECT_CONFIRM = 'DXC RUN 4U - Potvrdenie e-mailovej adresy'
 SECURITY_EMAIL_SUBJECT_REGISTER = 'DXC RUN 4U - Registrácia'
 
@@ -19,6 +19,7 @@ MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
 MAIL_PORT = int(os.environ.get('MAIL_PORT', 25))
 MAIL_USERNAME = os.environ.get('MAIL_USERNAME', None)
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', None)
+MAIL_DEFAULT_SENDER = ('DXC RUN 4U', 'info@dxcrun.eu')
 
 WTF_CSRF_ENABLED = False
 
@@ -38,3 +39,5 @@ TEAM_NAME_MAX_LENGTH = 255
 TEAM_URL_MAX_LENGTH = 255
 
 NUMBER_OF_STAGES = 20
+
+INVITE_SUBJECT = 'DXC RUN 4U - Pozvánka do tímu'
