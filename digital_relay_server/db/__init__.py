@@ -63,6 +63,22 @@ class Team(Document):
 
         self._stages = participants
 
+    @property
+    def url(self):
+        return f'{APP_URL}/teams/{self.id}'
+
+    def members_as_user_objects(self):
+        emails = self.members
+        users = list(User.objects(email__in=emails))
+        for user in users:
+            if user.email in emails:
+                emails.remove(user.email)
+
+        for email in emails:
+            users.append(User(id='null', name='null', email=email))
+
+        return users
+
     def set_default_stages(self):
         self.stages = self.members * math.ceil(NUMBER_OF_STAGES / len(self.members))
         self.stages = self.stages[:NUMBER_OF_STAGES]

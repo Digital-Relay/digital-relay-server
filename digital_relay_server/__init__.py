@@ -1,7 +1,7 @@
-from flask import Flask
+from flask import Flask, render_template
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_mail import Mail
+from flask_mail import Mail, Message
 from flask_security import MongoEngineUserDatastore, Security
 
 from digital_relay_server.api.security import ExtendedRegisterForm, ExtendedConfirmRegisterForm
@@ -36,6 +36,16 @@ def authenticate(email, password):
 @jwt.user_loader_callback_loader
 def identity(jwt_identity):
     return user_datastore.get_user(jwt_identity)
+
+
+def send_email_invites(recipients=None, author=None, team_name=None, team_link=None):
+    with mail.connect() as connection:
+        for recipient in recipients:
+            print('sending invite')
+            message = Message(subject=config['INVITE_SUBJECT'], recipients=[recipient])
+            message.html = render_template('invite.html', author=author, team_name=team_name, team_link=team_link)
+
+            connection.send(message)
 
 
 from digital_relay_server.api.api import blueprint

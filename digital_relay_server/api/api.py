@@ -6,10 +6,10 @@ from flask_jwt_extended import jwt_required, create_access_token, create_refresh
 from flask_restx import Resource, Api, marshal
 from mongoengine import DoesNotExist, NotUniqueError
 
-from digital_relay_server import authenticate
+from digital_relay_server import authenticate, send_email_invites
 from digital_relay_server.api.models import Models
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
-from digital_relay_server.db import Team, User
+from digital_relay_server.db import Team
 
 blueprint = Blueprint('api', __name__)
 api = Api(app=blueprint, title="DXC RUN 4U API", doc="/documentation")
@@ -156,7 +156,7 @@ class Teams(Resource):
     @ns_teams.response(code=401, description='Unauthorized', model=models.error)
     def get(self):
         """Retrieve all teams that the current user belongs to"""
-        teams = Team.objects(members=current_user.email)
+        teams = Team.objects(_members=current_user.email)
         return marshal({'teams': teams}, models.team_list), 200
 
 
@@ -221,26 +221,47 @@ class TeamResource(Resource):
 
 @ns_teams.route(f'/{team_id_in_route}/users')
 class TeamMembers(Resource):
-    @ns_teams.response(code=200, description='OK', model=models.team)
+    @ns_teams.response(code=200, description='OK', model=models.user_list)
     @ns_teams.response(code=400, description='Invalid ID', model=models.error)
     @ns_teams.response(code=404, description='Team not found', model=models.error)
     def get(self, team_id):
         """Retrieve team members as user objects"""
         try:
             team = Team.objects.get(id=ObjectId(team_id))
-            emails = team.members
-            users = list(User.objects(email__in=emails))
-            for user in users:
-                if user.email in emails:
-                    emails.remove(user.email)
-
-            for email in emails:
-                users.append(User(id='null', name='null', email=email))
+            users = team.members_as_user_objects()
             return marshal({'users': users}, models.user_list), 200
         except InvalidId:
             return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
         except DoesNotExist:
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
+
+    @jwt_required
+    @ns_teams.doc(security=authorizations, description='Add new members to the team and send them e-mail invites')
+    @ns_teams.expect(auth_header_jwt_parser, models.add_members_request)
+    @ns_teams.response(code=200, description='OK', model=models.user_list)
+    @ns_teams.response(code=400, description='Invalid ID', model=models.error)
+    @ns_teams.response(code=404, description='Team not found', model=models.error)
+    @json_payload_required
+    def post(self, team_id):
+        """Add users to team"""
+        data = request.json
+        try:
+            team = Team.objects.get(id=ObjectId(team_id))
+        except InvalidId:
+            return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
+        except DoesNotExist:
+            return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
+
+        new_members = []
+        for email in data['members']:
+            if email not in team.members:
+                team.members.append(email)
+                new_members.append(email)
+
+        send_email_invites(recipients=new_members, author=current_user.name, team_name=team.name, team_link=team.url)
+        team.save()
+        users = team.members_as_user_objects()
+        return marshal({'users': users}, models.user_list), 200
 
 
 @ns_teams.route(f'/{team_id_in_route}/stages')
