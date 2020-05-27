@@ -75,7 +75,7 @@ class Team(Document):
                 emails.remove(user.email)
 
         for email in emails:
-            users.append(User(id='null', name='null', email=email))
+            users.append(User(id=None, name=None, email=email))
 
         return users
 

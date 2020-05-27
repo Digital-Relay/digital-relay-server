@@ -224,13 +224,19 @@ class TeamResource(Resource):
 
 @ns_teams.route(f'/{team_id_in_route}/users')
 class TeamMembers(Resource):
+    @ns_teams.doc(security=authorizations)
+    @ns_teams.expect(auth_header_jwt_parser)
     @ns_teams.response(code=200, description='OK', model=models.user_list)
     @ns_teams.response(code=400, description='Invalid ID', model=models.error)
+    @ns_teams.response(code=403, description='Team not found', model=models.error)
     @ns_teams.response(code=404, description='Team not found', model=models.error)
+    @jwt_required
     def get(self, team_id):
         """Retrieve team members as user objects"""
         try:
             team = Team.objects.get(id=ObjectId(team_id))
+            if current_user.email not in team.members:
+                return marshal({"msg": f'You cannot access this team'}, models.error), 403
             users = team.members_as_user_objects()
             return marshal({'users': users}, models.user_list), 200
         except InvalidId:
@@ -272,7 +278,7 @@ class Stages(Resource):
     @jwt_required
     @ns_auth.doc(security=authorizations)
     @ns_teams.expect(auth_header_jwt_parser, models.edit_stages_request)
-    @ns_teams.response(code=200, description='OK')
+    @ns_teams.response(code=200, description='OK', model=models.team)
     @ns_teams.response(code=400, description='Invalid ID', model=models.error)
     @ns_teams.response(code=404, description='Team not found', model=models.error)
     @json_payload_required
@@ -299,4 +305,4 @@ class Stages(Resource):
                 return marshal({"msg": 'Stage index out of range'}, models.error), 400
 
         team.save()
-        return 'OK', 200
+        return marshal(team, models.team), 200
