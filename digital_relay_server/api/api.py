@@ -16,6 +16,7 @@ api = Api(app=blueprint, title="DXC RUN 4U API", doc="/documentation")
 
 ns_auth = api.namespace('Auth', path='/auth', description='Security endpoints')
 ns_teams = api.namespace('Teams', path='/teams', description='Team management endpoints')
+ns_users = api.namespace('Users', path='/users', description='User management endpoints')
 team_id_in_route = '<team_id>'
 
 auth_header_jwt_parser = api.parser()
@@ -68,15 +69,6 @@ class Login(Resource):
                         'refresh_token': refresh_token,
                         'expires_at': expiry_date_from_token(access_token),
                         'user': logged_in_user}, models.jwt_response), 200
-
-    @jwt_required
-    @ns_auth.doc(security=authorizations)
-    @ns_auth.expect(auth_header_jwt_parser)
-    @ns_auth.response(code=200, description='OK', model=models.user)
-    @ns_auth.response(code=401, description='Invalid credentials', model=models.error)
-    def get(self):
-        """Retrieve current user's info"""
-        return marshal(current_user, models.user), 200
 
 
 @ns_auth.route('/register')
@@ -199,9 +191,14 @@ class TeamResource(Resource):
         except DoesNotExist:
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
         team.name = data['name']
+        new_members = []
         try:
             if not data['members']:
                 data['members'] = [current_user.email]
+
+            if current_user.email not in data['members']:
+                data['members'].append(current_user.email)
+            new_members = team.new_members(data['members'])
             team.members = data['members']
         except KeyError:
             pass
@@ -216,6 +213,7 @@ class TeamResource(Resource):
         if not team.stages:
             team.set_default_stages()
         try:
+            send_email_invites(new_members, current_user.name, team.name, team.url)
             response = team.save()
             return marshal(response, models.team), 200
         except NotUniqueError:
@@ -261,12 +259,7 @@ class TeamMembers(Resource):
         except DoesNotExist:
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
 
-        new_members = []
-        for email in data['members']:
-            if email not in team.members:
-                team.members.append(email)
-                new_members.append(email)
-
+        new_members = team.new_members(data['members'])
         send_email_invites(recipients=new_members, author=current_user.name, team_name=team.name, team_link=team.url)
         team.save()
         users = team.members_as_user_objects()
@@ -306,3 +299,33 @@ class Stages(Resource):
 
         team.save()
         return marshal(team, models.team), 200
+
+
+@ns_users.route('')
+class UserResource(Resource):
+    @jwt_required
+    @ns_users.doc(security=authorizations)
+    @ns_users.expect(auth_header_jwt_parser)
+    @ns_users.response(code=200, description='OK', model=models.user)
+    @ns_users.response(code=401, description='Invalid credentials', model=models.error)
+    def get(self):
+        """Retrieve current user's info"""
+        return marshal(current_user, models.user), 200
+
+    @jwt_required
+    @ns_users.doc(security=authorizations)
+    @ns_users.expect(auth_header_jwt_parser, models.user)
+    @ns_users.response(code=200, description='OK', model=models.user)
+    @ns_users.response(code=400, description='Missing required parameter', model=models.error)
+    @ns_users.response(code=401, description='Invalid credentials', model=models.error)
+    @json_payload_required
+    def post(self):
+        """Update current user's info"""
+        data = request.json
+        try:
+            current_user.name = data['name']
+            current_user.tempo = data['tempo']
+            current_user.save()
+        except KeyError as e:
+            return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
+        return marshal(current_user, models.user), 200

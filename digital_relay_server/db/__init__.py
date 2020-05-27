@@ -81,3 +81,11 @@ class Team(Document):
 
     def set_default_stages(self):
         self._stages = (self.members * math.ceil(NUMBER_OF_STAGES / len(self.members)))[:NUMBER_OF_STAGES]
+
+    def new_members(self, next_state_members):
+        new_members = []
+        for email in next_state_members:
+            if email not in self.members:
+                new_members.append(email)
+
+        return new_members
