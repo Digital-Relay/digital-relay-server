@@ -123,6 +123,7 @@ class Teams(Resource):
         """Create a new team"""
         data = request.json
         try:
+            data['members'] = list(set(data['members']))
             new_team = Team(name=data['name'], _members=data['members'] + [current_user.email])
         except KeyError as e:
             return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
@@ -198,6 +199,8 @@ class TeamResource(Resource):
 
             if current_user.email not in data['members']:
                 data['members'].append(current_user.email)
+
+            data['members'] = list(set(data['members']))
             new_members = team.new_members(data['members'])
             team.members = data['members']
         except KeyError:
