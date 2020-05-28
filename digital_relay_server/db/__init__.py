@@ -2,7 +2,8 @@ import math
 
 from flask_mongoengine import MongoEngine
 from flask_security import RoleMixin, UserMixin
-from mongoengine import StringField, BooleanField, DateTimeField, ListField, ReferenceField, Document, IntField
+from mongoengine import StringField, BooleanField, DateTimeField, ListField, ReferenceField, Document, IntField, \
+    FloatField
 
 from digital_relay_server.config.config import *
 
@@ -34,6 +35,7 @@ class User(Document, UserMixin):
 
 class Team(Document):
     name = StringField(max_length=TEAM_NAME_MAX_LENGTH, unique=True)
+    donation = FloatField(min_value=0, default=0)
     _members = ListField(StringField(max_length=EMAIL_MAX_LENGTH), db_field='members')
     _stages = ListField(StringField(), db_field='stages')
 
@@ -69,7 +71,7 @@ class Team(Document):
 
     @property
     def public_info(self):
-        return dict(id=self.id, name=self.name, members=self.members, stages=[])
+        return dict(id=self.id, name=self.name, members=self.members, donation=self.donation, stages=[])
 
     def members_as_user_objects(self):
         emails = self.members

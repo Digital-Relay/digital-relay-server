@@ -151,8 +151,14 @@ class Teams(Resource):
             pass
 
         try:
+            new_team.donation = max(data['donation'], 0)
+        except KeyError:
+            pass
+
+        try:
             response = new_team.save()
-            send_email_invites(recipients=data['members'], author=current_user.name, team_name=new_team.name, team_link=new_team.url)
+            send_email_invites(recipients=data['members'], author=current_user.name, team_name=new_team.name,
+                               team_link=new_team.url)
             return marshal(response, models.team), 200
         except NotUniqueError:
             return marshal({"msg": f'Team named {new_team.name} already exists'}, models.error), 409
@@ -227,6 +233,12 @@ class TeamResource(Resource):
             pass
         if not team.stages:
             team.set_default_stages()
+
+        try:
+            team.donation = max(data['donation'], 0)
+        except KeyError:
+            pass
+
         try:
             send_email_invites(new_members, current_user.name, team.name, team.url)
             response = team.save()

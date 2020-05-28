@@ -42,7 +42,7 @@ class Models:
                                                                                 self.registration_response_body)})
         self.team = ns_teams.model('Team', {'id': fields.String,
                                             'name': fields.String(max_length=TEAM_NAME_MAX_LENGTH, required=True),
-                                            # 'url_safe_name': fields.String(max_length=config["TEAM_URL_MAX_LENGTH"]),
+                                            'donation': fields.Float(min=0),
                                             'members': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH),
                                                                    required=True),
                                             'stages': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH))})
