@@ -9,6 +9,8 @@ ENV MAIL_SERVER localhost
 ENV MAIL_PORT 25
 ENV MAIL_USERNAME username
 ENV MAIL_PASSWORD password
+ENV MAIL_USE_SSL False
+ENV MAIL_USE_TLS False
 COPY . /digital-relay/
 WORKDIR /digital-relay
 RUN pip install -r requirements.txt
