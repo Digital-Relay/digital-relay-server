@@ -109,6 +109,18 @@ class HelloWorld(Resource):
         return {'hello': current_user.email}
 
 
+@ns_teams.route('/all')
+class AllTeams(Resource):
+    @ns_teams.response(code=200, description='OK', model=models.team_list)
+    def get(self):
+        """Retrieve all teams public information (no stages info)"""
+        teams = list(Team.objects())
+        response = []
+        for team in teams:
+            response.append(team.public_info)
+        return marshal({'teams': response}, models.team_list), 200
+
+
 @ns_teams.route('')
 class Teams(Resource):
     @jwt_required

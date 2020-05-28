@@ -67,6 +67,10 @@ class Team(Document):
     def url(self):
         return f'{APP_URL}/teams/{self.id}'
 
+    @property
+    def public_info(self):
+        return dict(id=self.id, name=self.name, members=self.members, stages=[])
+
     def members_as_user_objects(self):
         emails = self.members
         users = list(User.objects(email__in=emails))
