@@ -32,10 +32,40 @@ class User(Document, UserMixin):
         }
 
 
+class Stage(Document):
+    index = IntField(min_value=0, max_value=NUMBER_OF_STAGES)
+    email = StringField(max_length=EMAIL_MAX_LENGTH)
+    estimated_time = IntField(min_value=0)
+    real_time = IntField(min_value=0)
+    length = IntField(min_value=0)
+
+    def load_values(self, stage_dict):
+        self.index = stage_dict["index"]
+        self.email = stage_dict["email"]
+        try:
+            self.estimated_time = stage_dict["estimated_time"]
+        except KeyError:
+            pass
+        try:
+            self.real_time = stage_dict["real_time"]
+        except KeyError:
+            pass
+        try:
+            self.length = stage_dict["length"]
+        except KeyError:
+            pass
+
+    @staticmethod
+    def from_dict(stage_dict):
+        result = Stage()
+        result.load_values(stage_dict=stage_dict)
+        return result
+
+
 class Team(Document):
     name = StringField(max_length=TEAM_NAME_MAX_LENGTH, unique=True)
     _members = ListField(StringField(max_length=EMAIL_MAX_LENGTH), db_field='members')
-    _stages = ListField(StringField(), db_field='stages')
+    _stages = ListField(ReferenceField(Stage), db_field='stages')
 
     @property
     def members(self):
@@ -57,11 +87,20 @@ class Team(Document):
     def stages(self, participants):
         if len(participants) != len(self.stages):
             raise IndexError
+        parsed = []
         for p in participants:
-            if p not in self.members:
-                raise ValueError(p)
+            if isinstance(p, dict):
+                p = Stage.from_dict(p)
+            parsed.append(p)
+        self.validate_participants(parsed)
+        self._stages = parsed
 
-        self._stages = participants
+    def validate_participants(self, stages):
+        for p in stages:
+            if isinstance(p, dict):
+                p = Stage.from_dict(p)
+            if p.email not in self.members:
+                raise ValueError(p)
 
     @property
     def url(self):
@@ -81,6 +120,7 @@ class Team(Document):
 
     def set_default_stages(self):
         self._stages = (self.members * math.ceil(NUMBER_OF_STAGES / len(self.members)))[:NUMBER_OF_STAGES]
+        self._stages = [Stage(email=email, index=i) for email, i in enumerate(self.stages)]
 
     def new_members(self, next_state_members):
         new_members = []
@@ -89,3 +129,12 @@ class Team(Document):
                 new_members.append(email)
 
         return new_members
+
+    def save(self, force_insert=False, validate=True, clean=True, write_concern=None, cascade=None, cascade_kwargs=None,
+             _refs=None, save_condition=None, signal_kwargs=None, **kwargs):
+        [stage.save(force_insert=force_insert, validate=validate, clean=clean, write_concern=write_concern,
+                    cascade=cascade, cascade_kwargs=cascade_kwargs, _refs=_refs, save_condition=save_condition,
+                    signal_kwargs=signal_kwargs, **kwargs) for stage in self._stages]
+        return super().save(force_insert, validate, clean, write_concern, cascade, cascade_kwargs, _refs,
+                            save_condition, signal_kwargs, **kwargs)
+

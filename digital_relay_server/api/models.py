@@ -40,17 +40,20 @@ class Models:
         self.registration_response = ns_auth.model('RegistrationResponse', {'meta': fields.Nested(self.response_meta),
                                                                             'response': fields.Nested(
                                                                                 self.registration_response_body)})
+        self.stage = ns_teams.model(name='Stage',
+                                    model={'index': fields.Integer(min=0, max=NUMBER_OF_STAGES, required=True),
+                                           'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True),
+                                           'estimated_time': fields.Integer(min=0),
+                                           'real_time': fields.Integer(min=0),
+                                           'length': fields.Integer(min=0)})
         self.team = ns_teams.model('Team', {'id': fields.String,
                                             'name': fields.String(max_length=TEAM_NAME_MAX_LENGTH, required=True),
                                             # 'url_safe_name': fields.String(max_length=config["TEAM_URL_MAX_LENGTH"]),
                                             'members': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH),
                                                                    required=True),
-                                            'stages': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH))})
+                                            'stages': fields.List(fields.Nested(self.stage))})
         self.team_list = ns_teams.model('TeamsList', {'teams': fields.List(fields.Nested(self.team))})
         self.user_list = ns_teams.model('UserList', {'users': fields.List(fields.Nested(self.user))})
-        self.stage = ns_teams.model(name='Stage',
-                                    model={'index': fields.Integer(min=0, max=NUMBER_OF_STAGES, required=True),
-                                           'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True)})
         self.edit_stages_request = ns_teams.model('EditStagesRequest',
                                                   {'stages': fields.List(fields.Nested(self.stage))})
         self.add_members_request = ns_teams.model('AddMembersRequest', {
