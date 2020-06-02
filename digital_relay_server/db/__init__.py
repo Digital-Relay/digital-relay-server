@@ -37,7 +37,7 @@ class Stage(Document):
     email = StringField(max_length=EMAIL_MAX_LENGTH)
     estimated_time = IntField(min_value=0)
     real_time = IntField(min_value=0)
-    length = IntField(min_value=0)
+    length = IntField(min_value=0, default=STAGE_LENGTH)
 
     def load_values(self, stage_dict):
         self.index = stage_dict["index"]

@@ -159,6 +159,8 @@ class Teams(Resource):
 
 def update_stages(team, stages):
     for stage_dict in stages:
+        if stage_dict['email'] not in team.members:
+            raise ValueError(stage_dict['email'])
         found = False
         for stage in team.stages:
             if stage.index == stage_dict["index"]:
@@ -302,15 +304,16 @@ class Stages(Resource):
             return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
         except DoesNotExist:
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
-        for stage in data['stages']:
-            try:
-                if not stage['email'] in team.members:
-                    return marshal({"msg": f'{stage["email"]} is not a member of this team'}, models.error), 400
-            except KeyError as e:
-                return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
-            except IndexError:
-                return marshal({"msg": 'Stage index out of range'}, models.error), 400
-        team.stages = data['stages']
+
+        try:
+            if not update_stages(team=team, stages=data['stages']):
+                return marshal({"msg": 'Invalid stage index'}, models.error), 400
+        except ValueError as e:
+            return marshal({"msg": f'{e.args[0]} is not a member of this team'}, models.error), 400
+        except KeyError as e:
+            return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
+        except IndexError:
+            return marshal({"msg": 'Stage index out of range'}, models.error), 400
         team.save()
         return marshal(team, models.team), 200
 
