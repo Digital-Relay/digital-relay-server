@@ -74,8 +74,8 @@ class Team(Document):
     @members.setter
     def members(self, mems):
         for i, stage in enumerate(self.stages):
-            if stage not in mems:
-                self.stages[i] = mems[0]
+            if stage.email not in mems:
+                self.stages[i] = Stage(email=mems[0], index=i)
 
         self._members = mems
 
@@ -119,8 +119,8 @@ class Team(Document):
         return users
 
     def set_default_stages(self):
-        self._stages = (self.members * math.ceil(NUMBER_OF_STAGES / len(self.members)))[:NUMBER_OF_STAGES]
-        self._stages = [Stage(email=email, index=i) for email, i in enumerate(self.stages)]
+        stages = (self.members * math.ceil(NUMBER_OF_STAGES / len(self.members)))[:NUMBER_OF_STAGES]
+        self._stages = [Stage(email=email, index=i) for i, email in enumerate(stages)]
 
     def new_members(self, next_state_members):
         new_members = []
