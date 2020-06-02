@@ -36,6 +36,7 @@ class User(Document, UserMixin):
 class Team(Document):
     name = StringField(max_length=TEAM_NAME_MAX_LENGTH, unique=True)
     donation = FloatField(min_value=0, default=0)
+    start = IntField(min_value=0, max_value=DAY_SECONDS, default=DEFAULT_START)
     _members = ListField(StringField(max_length=EMAIL_MAX_LENGTH), db_field='members')
     _stages = ListField(StringField(), db_field='stages')
 

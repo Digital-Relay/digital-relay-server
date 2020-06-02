@@ -43,6 +43,8 @@ class Models:
         self.team = ns_teams.model('Team', {'id': fields.String,
                                             'name': fields.String(max_length=TEAM_NAME_MAX_LENGTH, required=True),
                                             'donation': fields.Float(min=0),
+                                            'start': fields.Integer(min=0, max=DAY_SECONDS,
+                                                                    description="Team's starting time of day, in seconds since midnight"),
                                             'members': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH),
                                                                    required=True),
                                             'stages': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH))})
