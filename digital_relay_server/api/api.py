@@ -181,6 +181,21 @@ class Teams(Resource):
         return marshal({'teams': teams}, models.team_list), 200
 
 
+def update_stages(team, stages):
+    for stage_dict in stages:
+        if stage_dict['email'] not in team.members:
+            raise ValueError(stage_dict['email'])
+        found = False
+        for stage in team.stages:
+            if stage.index == stage_dict["index"]:
+                stage.load_values(stage_dict=stage_dict)
+                found = True
+                break
+        if not found:
+            return False
+    return True
+
+
 @ns_teams.route(f'/{team_id_in_route}')
 class TeamResource(Resource):
     @ns_teams.response(code=200, description='OK', model=models.team)
@@ -231,7 +246,8 @@ class TeamResource(Resource):
         except KeyError:
             pass
         try:
-            team.stages = data['stages']
+            if not update_stages(team=team, stages=data['stages']):
+                return marshal({"msg": 'Invalid stage index'}, models.error), 400
         except IndexError:
             return marshal({"msg": 'Stage count mismatch'}, models.error), 400
         except ValueError as e:
@@ -321,23 +337,20 @@ class Stages(Resource):
         data = request.json
         try:
             team = Team.objects.get(id=ObjectId(team_id))
-
         except InvalidId:
             return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
         except DoesNotExist:
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
 
-        for stage in data['stages']:
-            try:
-                if stage['email'] in team.members:
-                    team.stages[stage['index']] = stage['email']
-                else:
-                    return marshal({"msg": f'{stage["email"]} is not a member of this team'}, models.error), 400
-            except KeyError as e:
-                return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
-            except IndexError:
-                return marshal({"msg": 'Stage index out of range'}, models.error), 400
-
+        try:
+            if not update_stages(team=team, stages=data['stages']):
+                return marshal({"msg": 'Invalid stage index'}, models.error), 400
+        except ValueError as e:
+            return marshal({"msg": f'{e.args[0]} is not a member of this team'}, models.error), 400
+        except KeyError as e:
+            return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
+        except IndexError:
+            return marshal({"msg": 'Stage index out of range'}, models.error), 400
         team.save()
         return marshal(team, models.team), 200
 
