@@ -114,6 +114,11 @@ class Team(Document):
         return f'{APP_URL}/teams/{self.id}'
 
     @property
+    def registered_members(self):
+        result = list(User.objects(email__in=self.members))
+        return result
+
+    @property
     def public_info(self):
         return dict(id=self.id, name=self.name, members=self.members, donation=self.donation, stages=[])
 
@@ -130,8 +135,14 @@ class Team(Document):
         return users
 
     def set_default_stages(self):
-        stages = (self.members * math.ceil(NUMBER_OF_STAGES / len(self.members)))[:NUMBER_OF_STAGES]
-        self._stages = [Stage(email=email, index=i) for i, email in enumerate(stages)]
+        stages = (self.registered_members * math.ceil(NUMBER_OF_STAGES / len(self.registered_members)))[
+                 :NUMBER_OF_STAGES]
+        result = []
+        for i, user in enumerate(stages):
+            estimated_time = user.tempo * STAGE_LENGTH
+            result.append(Stage(email=user.email, index=i, estimated_time=estimated_time))
+
+        self._stages = result
 
     def new_members(self, next_state_members):
         new_members = []
