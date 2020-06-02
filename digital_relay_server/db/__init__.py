@@ -33,7 +33,7 @@ class User(Document, UserMixin):
 
 
 class Stage(Document):
-    index = IntField(min_value=0, max_value=NUMBER_OF_STAGES)
+    index = IntField(min_value=0, max_value=NUMBER_OF_STAGES - 1)
     email = StringField(max_length=EMAIL_MAX_LENGTH)
     estimated_time = IntField(min_value=0)
     real_time = IntField(min_value=0)
@@ -96,11 +96,15 @@ class Team(Document):
         self._stages = parsed
 
     def validate_participants(self, stages):
+        indexes = []
         for p in stages:
             if isinstance(p, dict):
                 p = Stage.from_dict(p)
             if p.email not in self.members:
                 raise ValueError(p)
+            indexes.append(p.index)
+        if len(indexes) != len(list(dict.fromkeys(indexes))):
+            raise ValueError()
 
     @property
     def url(self):

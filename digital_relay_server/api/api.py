@@ -159,11 +159,15 @@ class Teams(Resource):
 
 def update_stages(team, stages):
     for stage_dict in stages:
+        found = False
         for stage in team.stages:
             if stage.index == stage_dict["index"]:
                 stage.load_values(stage_dict=stage_dict)
-                return True
-    return False
+                found = True
+                break
+        if not found:
+            return False
+    return True
 
 
 @ns_teams.route(f'/{team_id_in_route}')
