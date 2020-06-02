@@ -4,7 +4,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, \
     current_user, jwt_refresh_token_required
 from flask_restx import Resource, Api, marshal
-from mongoengine import DoesNotExist, NotUniqueError
+from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 
 from digital_relay_server import authenticate, send_email_invites
 from digital_relay_server.api.models import Models
@@ -109,6 +109,18 @@ class HelloWorld(Resource):
         return {'hello': current_user.email}
 
 
+@ns_teams.route('/all')
+class AllTeams(Resource):
+    @ns_teams.response(code=200, description='OK', model=models.team_list)
+    def get(self):
+        """Retrieve all teams public information (no stages info)"""
+        teams = list(Team.objects())
+        response = []
+        for team in teams:
+            response.append(team.public_info)
+        return marshal({'teams': response}, models.team_list), 200
+
+
 @ns_teams.route('')
 class Teams(Resource):
     @jwt_required
@@ -139,12 +151,24 @@ class Teams(Resource):
             pass
 
         try:
+            new_team.donation = max(data['donation'], 0)
+        except KeyError:
+            pass
+
+        try:
+            new_team.start = max(data['start'], 0)
+        except KeyError:
+            pass
+
+        try:
             response = new_team.save()
             send_email_invites(recipients=data['members'], author=current_user.name, team_name=new_team.name,
                                team_link=new_team.url)
             return marshal(response, models.team), 200
         except NotUniqueError:
             return marshal({"msg": f'Team named {new_team.name} already exists'}, models.error), 409
+        except ValidationError as e:
+            return marshal({"msg": f'Invalid parameter: {e.message}'}, models.error), 400
 
     @jwt_required
     @ns_teams.doc(security=authorizations)
@@ -232,12 +256,25 @@ class TeamResource(Resource):
             pass
         if not team.stages:
             team.set_default_stages()
+
+        try:
+            team.donation = max(data['donation'], 0)
+        except KeyError:
+            pass
+
+        try:
+            team.start = max(data['start'], 0)
+        except KeyError:
+            pass
+
         try:
             send_email_invites(new_members, current_user.name, team.name, team.url)
             response = team.save()
             return marshal(response, models.team), 200
         except NotUniqueError:
             return marshal({"msg": f'Team named {team.name} already exists'}, models.error), 409
+        except ValidationError as e:
+            return marshal({"msg": f'Invalid parameter: {e.message}'}, models.error), 400
 
 
 @ns_teams.route(f'/{team_id_in_route}/users')
