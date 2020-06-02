@@ -41,7 +41,7 @@ class Models:
                                                                             'response': fields.Nested(
                                                                                 self.registration_response_body)})
         self.stage = ns_teams.model(name='Stage',
-                                    model={'index': fields.Integer(min=0, max=NUMBER_OF_STAGES, required=True),
+                                    model={'index': fields.Integer(min=0, max=NUMBER_OF_STAGES - 1, required=True),
                                            'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True),
                                            'estimated_time': fields.Integer(min=0),
                                            'real_time': fields.Integer(min=0),
