@@ -46,7 +46,7 @@ TEAM_URL_MAX_LENGTH = 255
 
 NUMBER_OF_STAGES = 20
 STAGE_LENGTH = 5
-DEFAULT_START = (9 * 60 * 60) + (0 * 60) + 0
+DEFAULT_START = (int(os.environ.get('DEFAULT_START', 8)) * 60 * 60) + (0 * 60) + 0
 DAY_SECONDS = (23 * 60 * 60) + (59 * 60) + 59
 
 INVITE_SUBJECT = 'DXC RUN 4U - Pozvánka do tímu'
