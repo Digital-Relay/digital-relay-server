@@ -1,6 +1,7 @@
 import os
 
 API_URL_PREFIX = '/api'
+API_VERSION = os.environ.get('API_VERSION', 'v1.0.0')
 APP_URL = os.environ.get('APP_URL', 'http://localhost:4200')
 # Generate a nice key using secrets.token_urlsafe()
 SECRET_KEY = os.environ.get("SECRET_KEY", 'pf9Wkove4IKEAXvy-cQkeDPhv9Cb3Ag-wyJILbq_dFw')

@@ -9,10 +9,11 @@ from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 from digital_relay_server import authenticate, send_email_invites
 from digital_relay_server.api.models import Models
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
+from digital_relay_server.config.config import API_VERSION
 from digital_relay_server.db import Team
 
 blueprint = Blueprint('api', __name__)
-api = Api(app=blueprint, title="DXC RUN 4U API", doc="/documentation")
+api = Api(app=blueprint, title="DXC RUN 4U API", doc="/documentation", version=API_VERSION)
 
 ns_auth = api.namespace('Auth', path='/auth', description='Security endpoints')
 ns_teams = api.namespace('Teams', path='/teams', description='Team management endpoints')
