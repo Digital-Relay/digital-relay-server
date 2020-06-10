@@ -82,6 +82,17 @@ class Register(Resource):
         pass
 
 
+@ns_auth.route('/reset')
+class Reset(Resource):
+    @ns_auth.expect(models.user_reset)
+    @ns_auth.response(code=200, description='Registration successful', model=models.registration_response)
+    @ns_auth.response(code=400, description='Request invalid', model=models.registration_response)
+    def post(self):
+        """Request user password reset"""
+        # do nothing, password reset is handled by flask-security endpoint, this is only for documentation
+        pass
+
+
 @ns_auth.route('/refresh_token')
 class TokenRefresh(Resource):
     @jwt_refresh_token_required
