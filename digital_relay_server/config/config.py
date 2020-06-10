@@ -12,8 +12,11 @@ SECURITY_REGISTERABLE = True
 SECURITY_REGISTER_URL = API_URL_PREFIX + '/auth/register'
 SECURITY_CONFIRMABLE = True
 SECURITY_POST_CONFIRM_VIEW = APP_URL + '/login?emailConfirmed=1'
+SECURITY_POST_RESET_VIEW = APP_URL + '/login?passwordChanged=1'
 SECURITY_EMAIL_SUBJECT_CONFIRM = 'DXC RUN 4U - Potvrdenie e-mailovej adresy'
 SECURITY_EMAIL_SUBJECT_REGISTER = 'DXC RUN 4U - Registrácia'
+SECURITY_RECOVERABLE = True
+SECURITY_RESET_URL = API_URL_PREFIX + '/auth/reset'
 
 MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
 MAIL_PORT = int(os.environ.get('MAIL_PORT', 25))

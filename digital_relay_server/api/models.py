@@ -9,6 +9,7 @@ class Models:
                                'name': fields.String(max_length=NAME_MAX_LENGTH, required=True),
                                'tempo': fields.Integer(min=0, required=True, description='Runners tempo, in secs/km'),
                                'password': fields.String(max_length=PASSWORD_MAX_LENGTH, required=True)}
+        user_reset_model = {'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True)}
 
         registration_error_keys = {}
         for key in user_register_model:
@@ -18,6 +19,7 @@ class Models:
                                         {'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True),
                                          'password': fields.String(max_length=PASSWORD_MAX_LENGTH, required=True)})
         self.user_register = ns_auth.model('RegisterRequest', user_register_model)
+        self.user_reset = ns_auth.model('PasswordResetRequest', user_reset_model)
         self.user = ns_auth.model('User', {'id': fields.String,
                                            'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True),
                                            'name': fields.String(max_length=NAME_MAX_LENGTH, required=True),
