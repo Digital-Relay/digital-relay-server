@@ -4,7 +4,8 @@ from flask_jwt_extended import JWTManager
 from flask_mail import Mail, Message
 from flask_security import MongoEngineUserDatastore, Security
 
-from digital_relay_server.api.security import ExtendedRegisterForm, ExtendedConfirmRegisterForm
+from digital_relay_server.api.security import ExtendedRegisterForm, ExtendedConfirmRegisterForm, \
+    ExtendedResetPasswordForm
 from digital_relay_server.db import db, User, Role
 
 app = Flask(__name__)
@@ -21,7 +22,7 @@ mail.init_app(app)
 # Setup Flask-Security
 user_datastore = MongoEngineUserDatastore(db, User, Role)
 security = Security(app, user_datastore, register_form=ExtendedRegisterForm,
-                    confirm_register_form=ExtendedConfirmRegisterForm)
+                    confirm_register_form=ExtendedConfirmRegisterForm, reset_password_form=ExtendedResetPasswordForm)
 
 
 def authenticate(email, password):
