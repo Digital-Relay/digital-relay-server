@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required, create_access_token, create_refresh
 from flask_restx import Resource, Api, marshal
 from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 
-from digital_relay_server import authenticate, send_email_invites, send_push_notifications
+from digital_relay_server import authenticate, send_email_invites, send_push_notifications, logger
 from digital_relay_server.api.models import Models
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
 from digital_relay_server.config.config import VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, API_VERSION
@@ -393,13 +393,17 @@ class Stages(Resource):
         new_active_stage = team.active_stage
         if active_stage != new_active_stage:
             finisher = active_stage.email
-            finisher_user = User.objects.get(email=finisher)
+            try:
+                finisher_user = User.objects.get(email=finisher)
+            except DoesNotExist:
+                finisher_user = User(name=finisher)
             next = None
             if new_active_stage:
                 next = new_active_stage.email
 
             stage_ended_recipients = team.members.copy()
             stage_ended_recipients.remove(finisher)
+            logger.info(f'{stage_ended_recipients}')
             send_push_notifications(list(User.objects(email__in=stage_ended_recipients)),
                                     f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}')
             if next:

@@ -53,6 +53,7 @@ def send_email_invites(recipients=None, author=None, team_name=None, team_link=N
 def send_push_notifications(users, data):
     for user in users:
         for subscription_info in user.push_subscriptions:
+            logger.info(f'sending notification to {user.name}\n{subscription_info}')
             webpush(subscription_info, data=data, vapid_private_key=VAPID_PRIVATE_KEY)
 
 
