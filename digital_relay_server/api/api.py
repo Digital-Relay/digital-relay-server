@@ -7,11 +7,11 @@ from flask_jwt_extended import jwt_required, create_access_token, create_refresh
 from flask_restx import Resource, Api, marshal
 from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 
-from digital_relay_server import authenticate, send_email_invites
+from digital_relay_server import authenticate, send_email_invites, send_push_notifications
 from digital_relay_server.api.models import Models
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
 from digital_relay_server.config.config import VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
-from digital_relay_server.db import Team
+from digital_relay_server.db import Team, User
 
 blueprint = Blueprint('api', __name__)
 api = Api(app=blueprint, title="DXC RUN 4U API", doc="/documentation")
@@ -380,7 +380,7 @@ class Stages(Resource):
             return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
         except DoesNotExist:
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
-
+        active_stage = team.active_stage
         try:
             if not update_stages(team=team, stages=data['stages']):
                 return marshal({"msg": 'Invalid stage index'}, models.error), 400
@@ -390,6 +390,21 @@ class Stages(Resource):
             return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
         except IndexError:
             return marshal({"msg": 'Stage index out of range'}, models.error), 400
+        new_active_stage = team.active_stage
+        if active_stage != new_active_stage:
+            finisher = active_stage.email
+            finisher_user = User.objects.get(email=finisher)
+            next = None
+            if new_active_stage:
+                next = new_active_stage.email
+
+            stage_ended_recipients = team.members.copy()
+            stage_ended_recipients.remove(finisher)
+            send_push_notifications(list(User.objects(email__in=stage_ended_recipients)),
+                                    f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}')
+            if next:
+                send_push_notifications(list(User.objects(email=next)),
+                                        f'Vyrážate na úsek {new_active_stage.index + 1}!')
         team.save()
         return marshal(team, models.team), 200
 

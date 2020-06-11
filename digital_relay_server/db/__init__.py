@@ -122,6 +122,17 @@ class Team(Document):
     def public_info(self):
         return dict(id=self.id, name=self.name, members=self.members, donation=self.donation, stages=[])
 
+    @property
+    def active_stage(self):
+        for i, stage in enumerate(self.stages):
+            if stage.real_time is None:
+                if i == 0:
+                    return stage
+                else:
+                    if self.stages[i - 1] is not None:
+                        return stage
+        return None
+
     def members_as_user_objects(self):
         emails = self.members
         users = list(User.objects(email__in=emails))
