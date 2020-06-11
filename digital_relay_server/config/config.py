@@ -43,6 +43,9 @@ MONGODB_DB = 'digital-relay'
 MONGODB_HOST = os.environ.get('MONGODB_HOST', 'localhost')
 MONGODB_PORT = int(os.environ.get('MONGODB_PORT', 27017))
 
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+
 EMAIL_MAX_LENGTH = 255
 PASSWORD_MAX_LENGTH = 128
 NAME_MAX_LENGTH = 255

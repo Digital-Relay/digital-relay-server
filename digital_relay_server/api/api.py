@@ -9,6 +9,7 @@ from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 from digital_relay_server import authenticate, send_email_invites
 from digital_relay_server.api.models import Models
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
+from digital_relay_server.config.config import VAPID_PUBLIC_KEY
 from digital_relay_server.db import Team
 
 blueprint = Blueprint('api', __name__)
@@ -108,6 +109,22 @@ class TokenRefresh(Resource):
                         'refresh_token': None,
                         'expires_at': expiry_date_from_token(access_token),
                         'user': current_user}, models.jwt_response), 200
+
+
+@ns_auth.route('/push')
+class PushResource(Resource):
+    @ns_auth.response(code=200, description='OK', model=models.vapid_public_key)
+    def get(self):
+        """Get VAPID public key"""
+        return marshal({'public_key': VAPID_PUBLIC_KEY}, models.vapid_public_key), 200
+
+    @jwt_required
+    @ns_auth.doc(security=authorizations)
+    @ns_auth.expect(auth_header_jwt_parser)
+    @json_payload_required
+    def post(self):
+        """Add new push subscription to current user"""
+        pass
 
 
 @ns_auth.route('/hello')

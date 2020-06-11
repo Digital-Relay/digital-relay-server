@@ -2,8 +2,7 @@ import math
 
 from flask_mongoengine import MongoEngine
 from flask_security import RoleMixin, UserMixin
-from mongoengine import StringField, BooleanField, DateTimeField, ListField, ReferenceField, Document, IntField, \
-    FloatField
+from mongoengine import *
 
 from digital_relay_server.config.config import *
 
@@ -23,6 +22,7 @@ class User(Document, UserMixin):
     roles = ListField(ReferenceField(Role), default=[])
     name = StringField(max_length=NAME_MAX_LENGTH)
     tempo = IntField(min_value=0)
+    push_subscriptions = ListField(DictField(), default=[])
 
     def get_security_payload(self):
         return {

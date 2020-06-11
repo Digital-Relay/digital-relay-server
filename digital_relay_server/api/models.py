@@ -63,3 +63,4 @@ class Models:
                                                   {'stages': fields.List(fields.Nested(self.stage))})
         self.add_members_request = ns_teams.model('AddMembersRequest', {
             'members': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH), required=True)})
+        self.vapid_public_key = ns_auth.model('VAPIDKey', {'public_key': fields.String(required=True)})
