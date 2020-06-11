@@ -1,4 +1,6 @@
 FROM python
+ARG BUILD_API_VERSION=VersionNotSpecified
+ENV API_VERSION=$BUILD_API_VERSION
 ENV port 8000
 ENV server_timeout 30
 ENV server_workers 3
