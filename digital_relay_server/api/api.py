@@ -120,11 +120,16 @@ class PushResource(Resource):
 
     @jwt_required
     @ns_auth.doc(security=authorizations)
-    @ns_auth.expect(auth_header_jwt_parser)
+    @ns_auth.expect(auth_header_jwt_parser, models.push_subscription)
+    @ns_auth.response(code=200, description='Push subscription saved')
+    @ns_auth.response(code=401, description='Unauthorized', model=models.error)
     @json_payload_required
     def post(self):
         """Add new push subscription to current user"""
-        pass
+        data = request.json
+        current_user.push_subscriptions.append(data)
+        current_user.save()
+        return 'OK', 200
 
 
 @ns_auth.route('/hello')
