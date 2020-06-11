@@ -16,7 +16,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: digitalrelay/digital-relay-server
           tags: "latest,${{ env.RELEASE_VERSION }}"
-          build_args: "API_VERSION=${{ env.RELEASE_VERSION }}"
+          build_args: "BUILD_API_VERSION=${{ env.RELEASE_VERSION }}"
       - name: 'Login via Azure CLI'
         uses: azure/login@v1
         with:
