@@ -1,3 +1,4 @@
+import pywebpush
 from bson import ObjectId
 from bson.errors import InvalidId
 from flask import Blueprint, request
@@ -9,7 +10,7 @@ from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 from digital_relay_server import authenticate, send_email_invites
 from digital_relay_server.api.models import Models
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
-from digital_relay_server.config.config import VAPID_PUBLIC_KEY
+from digital_relay_server.config.config import VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
 from digital_relay_server.db import Team
 
 blueprint = Blueprint('api', __name__)
@@ -122,12 +123,17 @@ class PushResource(Resource):
     @ns_auth.doc(security=authorizations)
     @ns_auth.expect(auth_header_jwt_parser, models.push_subscription)
     @ns_auth.response(code=200, description='Push subscription saved')
+    @ns_auth.response(code=400, description='Bad request', model=models.error)
     @ns_auth.response(code=401, description='Unauthorized', model=models.error)
     @json_payload_required
     def post(self):
         """Add new push subscription to current user"""
         data = request.json
         current_user.push_subscriptions.append(data)
+        try:
+            pywebpush.webpush(subscription_info=data, data='push_successful', vapid_private_key=VAPID_PRIVATE_KEY)
+        except pywebpush.WebPushException as e:
+            return marshal({'msg': e.message}, models.error), 400
         current_user.save()
         return 'OK', 200
 

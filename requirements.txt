@@ -6,5 +6,5 @@ flask-jwt-extended
 Flask_Security_Too
 flask_mongoengine
 Flask-Cors
-
+pywebpush
 WTForms~=2.3.1
