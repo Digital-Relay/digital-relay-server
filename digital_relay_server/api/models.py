@@ -63,3 +63,9 @@ class Models:
                                                   {'stages': fields.List(fields.Nested(self.stage))})
         self.add_members_request = ns_teams.model('AddMembersRequest', {
             'members': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH), required=True)})
+        self.vapid_public_key = ns_auth.model('VAPIDKey', {'public_key': fields.String(required=True)})
+        self.push_subscription_keys = ns_auth.model('PushSubscriptionKeys', {'p256dh': fields.String(),
+                                                                             'auth': fields.String()})
+        self.push_subscription = ns_auth.model('PushSubscription', {'endpoint': fields.String(required=True),
+                                                                    'expiration_time': fields.Integer(),
+                                                                    'keys': fields.Nested(self.push_subscription_keys)})

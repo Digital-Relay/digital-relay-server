@@ -1,3 +1,4 @@
+import pywebpush
 from bson import ObjectId
 from bson.errors import InvalidId
 from flask import Blueprint, request
@@ -6,11 +7,11 @@ from flask_jwt_extended import jwt_required, create_access_token, create_refresh
 from flask_restx import Resource, Api, marshal
 from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 
-from digital_relay_server import authenticate, send_email_invites
+from digital_relay_server import authenticate, send_email_invites, send_push_notifications
 from digital_relay_server.api.models import Models
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
-from digital_relay_server.config.config import API_VERSION
-from digital_relay_server.db import Team
+from digital_relay_server.config.config import VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, API_VERSION
+from digital_relay_server.db import Team, User
 
 blueprint = Blueprint('api', __name__)
 api = Api(app=blueprint, title="DXC RUN 4U API", doc="/documentation", version=API_VERSION)
@@ -109,6 +110,32 @@ class TokenRefresh(Resource):
                         'refresh_token': None,
                         'expires_at': expiry_date_from_token(access_token),
                         'user': current_user}, models.jwt_response), 200
+
+
+@ns_auth.route('/push')
+class PushResource(Resource):
+    @ns_auth.response(code=200, description='OK', model=models.vapid_public_key)
+    def get(self):
+        """Get VAPID public key"""
+        return marshal({'public_key': VAPID_PUBLIC_KEY}, models.vapid_public_key), 200
+
+    @jwt_required
+    @ns_auth.doc(security=authorizations)
+    @ns_auth.expect(auth_header_jwt_parser, models.push_subscription)
+    @ns_auth.response(code=200, description='Push subscription saved')
+    @ns_auth.response(code=400, description='Bad request', model=models.error)
+    @ns_auth.response(code=401, description='Unauthorized', model=models.error)
+    @json_payload_required
+    def post(self):
+        """Add new push subscription to current user"""
+        data = request.json
+        current_user.push_subscriptions.append(data)
+        try:
+            pywebpush.webpush(subscription_info=data, data='push_successful', vapid_private_key=VAPID_PRIVATE_KEY)
+        except pywebpush.WebPushException as e:
+            return marshal({'msg': e.message}, models.error), 400
+        current_user.save()
+        return 'OK', 200
 
 
 @ns_auth.route('/hello')
@@ -353,7 +380,7 @@ class Stages(Resource):
             return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
         except DoesNotExist:
             return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
-
+        active_stage = team.active_stage
         try:
             if not update_stages(team=team, stages=data['stages']):
                 return marshal({"msg": 'Invalid stage index'}, models.error), 400
@@ -363,6 +390,21 @@ class Stages(Resource):
             return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
         except IndexError:
             return marshal({"msg": 'Stage index out of range'}, models.error), 400
+        new_active_stage = team.active_stage
+        if active_stage != new_active_stage:
+            finisher = active_stage.email
+            finisher_user = User.objects.get(email=finisher)
+            next = None
+            if new_active_stage:
+                next = new_active_stage.email
+
+            stage_ended_recipients = team.members.copy()
+            stage_ended_recipients.remove(finisher)
+            send_push_notifications(list(User.objects(email__in=stage_ended_recipients)),
+                                    f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}')
+            if next:
+                send_push_notifications(list(User.objects(email=next)),
+                                        f'Vyrážate na úsek {new_active_stage.index + 1}!')
         team.save()
         return marshal(team, models.team), 200
 
