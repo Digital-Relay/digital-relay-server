@@ -11,8 +11,10 @@ web-push generate-vapid-keys --json
 ```
 
 ## Environment variables
-|---|---|  
-VAPID_PRIVATE_KEY | ""
-VAPID_PUBLIC_KEY | ""
-VAPID_CLAIMS_SUB | Format: `mailto:yourmail@gmail.com`
-GOOGLE_SERVER_KEY | Server key from Google Firebase Cloud Messaging
+
+Env. variable | Description
+---|---
+`VAPID_PRIVATE_KEY` | Push messaging private key (registered in Firebase)
+`VAPID_PUBLIC_KEY` | Push messaging public key (registered in Firebase)
+`VAPID_CLAIMS_SUB` | Admin email, format: `mailto:yourmail@gmail.com`
+`GOOGLE_SERVER_KEY` | Server key from Google Firebase Cloud Messaging

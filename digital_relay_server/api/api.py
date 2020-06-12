@@ -131,7 +131,6 @@ class PushResource(Resource):
     def post(self):
         """Add new push subscription to current user"""
         data = request.json
-        print(data)
         if current_user.push_subscriptions.count(data) == 0:
             current_user.push_subscriptions.append(data)
             push_message = PushNotificationMessages(title='Upozornenia fungujú!',
