@@ -16,6 +16,8 @@ ENV MAIL_USE_SSL False
 ENV MAIL_USE_TLS False
 ENV VAPID_PRIVATE_KEY ""
 ENV VAPID_PUBLIC_KEY ""
+ENV VAPID_CLAIMS_SUB ""
+ENV GOOGLE_SERVER_KEY ""
 COPY . /digital-relay/
 WORKDIR /digital-relay
 RUN pip install -r requirements.txt

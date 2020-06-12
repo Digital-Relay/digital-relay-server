@@ -1,16 +1,17 @@
 import pywebpush
 from bson import ObjectId
 from bson.errors import InvalidId
-from flask import Blueprint, request
+from flask import Blueprint, request, render_template
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, \
     current_user, jwt_refresh_token_required
 from flask_restx import Resource, Api, marshal
 from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 
 from digital_relay_server import authenticate, send_email_invites, send_push_notifications
-from digital_relay_server.api.models import Models
+from digital_relay_server.api.models import Models, PushNotificationMessages
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
-from digital_relay_server.config.config import VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, API_VERSION
+from digital_relay_server.config.config import VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, API_VERSION, VAPID_CLAIMS_SUB, \
+    PUSH_HEADERS
 from digital_relay_server.db import Team, User
 
 blueprint = Blueprint('api', __name__)
@@ -123,6 +124,7 @@ class PushResource(Resource):
     @ns_auth.doc(security=authorizations)
     @ns_auth.expect(auth_header_jwt_parser, models.push_subscription)
     @ns_auth.response(code=200, description='Push subscription saved')
+    @ns_auth.response(code=204, description='Push subscription already registered')
     @ns_auth.response(code=400, description='Bad request', model=models.error)
     @ns_auth.response(code=401, description='Unauthorized', model=models.error)
     @json_payload_required
@@ -132,16 +134,18 @@ class PushResource(Resource):
         print(data)
         if current_user.push_subscriptions.count(data) == 0:
             current_user.push_subscriptions.append(data)
-            push_data = '{"notification": "Push successful"}'
+            push_message = PushNotificationMessages(title='Upozornenia fungujú!',
+                                                    body='Ďakujeme za povolenie upozornení.').to_dict()
             try:
                 pywebpush.webpush(subscription_info=data,
-                                  data=push_data,
+                                  data=render_template('push.json', n=push_message),
                                   vapid_private_key=VAPID_PRIVATE_KEY,
-                                  vapid_claims={'sub': 'mailto:m.pilnan@gmail.com'},
-                                  headers={
-                                      'Authorization': f'key=AAAAbB0p_BA:APA91bHPekH1LrwCHEPceBfmahfOnOOkYrVQ7_AtIxIGzxYzdFhUUnPhZlkXFo-qy7ONPZtMNCpyoCcTP8zu4ZokD58b4VwY86WrtDrYcqL-pH2s5YLmEREkLniwwkEEK5NvXvNugfKN'})
+                                  vapid_claims={'sub': VAPID_CLAIMS_SUB},
+                                  headers=PUSH_HEADERS)
             except pywebpush.WebPushException as e:
                 return marshal({'msg': e.message}, models.error), 400
+        else:
+            return 'Push subscription already registered', 204
         current_user.save()
         return 'OK', 200
 
@@ -408,11 +412,13 @@ class Stages(Resource):
 
             stage_ended_recipients = team.members.copy()
             stage_ended_recipients.remove(finisher)
-            send_push_notifications(list(User.objects(email__in=stage_ended_recipients)),
-                                    f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}')
+            stage_ended_messages = PushNotificationMessages(title='Úsek ukončený',
+                                                            body=f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}')
+            send_push_notifications(list(User.objects(email__in=stage_ended_recipients)), stage_ended_messages)
             if next:
                 send_push_notifications(list(User.objects(email=next)),
-                                        f'Vyrážate na úsek {new_active_stage.index + 1}!')
+                                        PushNotificationMessages(title='Štart!',
+                                                                 body=f'Vyrážate na úsek {new_active_stage.index + 1}!'))
         team.save()
         return marshal(team, models.team), 200
 

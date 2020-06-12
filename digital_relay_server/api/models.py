@@ -3,6 +3,16 @@ from flask_restx import fields, Namespace
 from digital_relay_server.config.config import *
 
 
+class PushNotificationMessages():
+    def __init__(self, title=None, body=None) -> None:
+        self.title = title
+        self.body = body
+
+    def to_dict(self):
+        return {'title': self.title,
+                'body': self.body}
+
+
 class Models:
     def __init__(self, ns_auth: Namespace, ns_teams: Namespace):
         user_register_model = {'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True),

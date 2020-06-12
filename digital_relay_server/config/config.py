@@ -46,6 +46,9 @@ MONGODB_PORT = int(os.environ.get('MONGODB_PORT', 27017))
 
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
 VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_CLAIMS_SUB = os.environ.get('VAPID_CLAIMS_SUB', 'mailto:m.pilnan@gmail.com')
+GOOGLE_SERVER_KEY = os.environ.get('GOOGLE_SERVER_KEY', '')
+PUSH_HEADERS = {'Authorization': f'key={GOOGLE_SERVER_KEY}'}
 
 EMAIL_MAX_LENGTH = 255
 PASSWORD_MAX_LENGTH = 128

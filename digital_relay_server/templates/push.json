@@ -1,0 +1,10 @@
+{
+  "notification": {
+    "body": "{{n.body}}",
+    "title": "{{n.title}}"
+  },
+  "data": {
+    "Nick": "Mario",
+    "Room": "PortugalVSDenmark"
+  }
+}
