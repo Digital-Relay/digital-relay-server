@@ -10,7 +10,7 @@ from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 from digital_relay_server import authenticate, send_email_invites, send_push_notifications
 from digital_relay_server.api.models import Models
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
-from digital_relay_server.config.config import VAPID_PUBLIC_KEY, API_VERSION
+from digital_relay_server.config.config import VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, API_VERSION
 from digital_relay_server.db import Team, User
 
 blueprint = Blueprint('api', __name__)
@@ -130,18 +130,20 @@ class PushResource(Resource):
         """Add new push subscription to current user"""
         data = request.json
         print(data)
-        current_user.push_subscriptions.append(data)
-        try:
-            # pywebpush.webpush(subscription_info=data,
-            #                   data='push_successful',
-            #                   vapid_private_key=VAPID_PRIVATE_KEY,
-            #                   headers={'Authorization': f'key={VAPID_PRIVATE_KEY}'})
-            response = pywebpush.WebPusher(data).send('test',
-                                                      gcm_key='AAAAbB0p_BA:APA91bHPekH1LrwCHEPceBfmahfOnOOkYrVQ7_AtIxIGzxYzdFhUUnPhZlkXFo-qy7ONPZtMNCpyoCcTP8zu4ZokD58b4VwY86WrtDrYcqL-pH2s5YLmEREkLniwwkEEK5NvXvNugfKN')
-        except pywebpush.WebPushException as e:
-            return marshal({'msg': e.message}, models.error), 400
+        if current_user.push_subscriptions.count(data) == 0:
+            current_user.push_subscriptions.append(data)
+            push_data = '{"notification": "Push successful"}'
+            try:
+                pywebpush.webpush(subscription_info=data,
+                                  data=push_data,
+                                  vapid_private_key=VAPID_PRIVATE_KEY,
+                                  vapid_claims={'sub': 'mailto:m.pilnan@gmail.com'},
+                                  headers={
+                                      'Authorization': f'key=AAAAbB0p_BA:APA91bHPekH1LrwCHEPceBfmahfOnOOkYrVQ7_AtIxIGzxYzdFhUUnPhZlkXFo-qy7ONPZtMNCpyoCcTP8zu4ZokD58b4VwY86WrtDrYcqL-pH2s5YLmEREkLniwwkEEK5NvXvNugfKN'})
+            except pywebpush.WebPushException as e:
+                return marshal({'msg': e.message}, models.error), 400
         current_user.save()
-        return response.json(), 200
+        return 'OK', 200
 
 
 @ns_auth.route('/hello')
