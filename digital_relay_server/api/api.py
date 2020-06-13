@@ -404,7 +404,10 @@ class Stages(Resource):
         new_active_stage = team.active_stage
         if active_stage != new_active_stage:
             finisher = active_stage.email
-            finisher_user = User.objects.get(email=finisher)
+            try:
+                finisher_user = User.objects.get(email=finisher)
+            except DoesNotExist:
+                finisher_user = User(name=finisher)
             next = None
             if new_active_stage:
                 next = new_active_stage.email
