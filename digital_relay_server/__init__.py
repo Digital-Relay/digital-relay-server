@@ -3,7 +3,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail, Message
 from flask_security import MongoEngineUserDatastore, Security
-from pywebpush import webpush
+from pywebpush import webpush, WebPushException
 
 from digital_relay_server.api.models import PushNotificationMessage, PushNotificationAction
 from digital_relay_server.api.security import ExtendedRegisterForm, ExtendedConfirmRegisterForm, \
@@ -57,14 +57,22 @@ def send_push_notifications(users, messages, actions=None):
     if isinstance(messages, PushNotificationMessage):
         messages = messages.to_dict()
     for user in users:
+        subscriptions = user.push_subscriptions.copy()
         for subscription_info in user.push_subscriptions:
-            webpush(subscription_info,
-                    data=render_template('push.json', n=messages,
-                                         actions=[a.to_dict() if isinstance(a, PushNotificationAction) else a for a in
-                                                  actions]),
-                    vapid_private_key=VAPID_PRIVATE_KEY,
-                    vapid_claims={'sub': VAPID_CLAIMS_SUB},
-                    headers=PUSH_HEADERS)
+            try:
+                webpush(subscription_info,
+                        data=render_template('push.json', n=messages,
+                                             actions=[a.to_dict() if isinstance(a, PushNotificationAction) else a for a in
+                                                      actions]),
+                        vapid_private_key=VAPID_PRIVATE_KEY,
+                        vapid_claims={'sub': VAPID_CLAIMS_SUB},
+                        headers=PUSH_HEADERS)
+            except WebPushException as e:
+                if e.response.status_code == 410:
+                    subscriptions.remove(subscription_info)
+        if len(subscriptions) != len(user.push_subscriptions):
+            user.push_subscriptions = subscriptions
+            user.save()
 
 
 from digital_relay_server.api.api import blueprint

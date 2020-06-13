@@ -9,21 +9,18 @@
       100
     ],
     "data": {
-{
-  % if n.team_id -%}
-"teamId": "{{n.team_id}}"
-{
-%- endif %
-}
-},
-"actions": [
-{% for action in actions -%}
-{
-"action": "{{action.action}}",
-"title": "{{action.title}}"
-}{% if not loop.last -%},
-{% endif %}
-{%- endfor %}
-]
-}
+      {% if n.team_id -%}
+      "teamId": "{{n.team_id}}"
+      {%- endif %}
+      },
+    "actions": [
+    {% for action in actions -%}
+    {
+      "action": "{{action.action}}",
+      "title": "{{action.title}}"
+    }{% if not loop.last -%},
+    {% endif %}
+    {%- endfor %}
+    ]
+  }
 }
