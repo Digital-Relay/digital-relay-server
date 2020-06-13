@@ -5,7 +5,7 @@ from flask_mail import Mail, Message
 from flask_security import MongoEngineUserDatastore, Security
 from pywebpush import webpush
 
-from digital_relay_server.api.models import PushNotificationMessages
+from digital_relay_server.api.models import PushNotificationMessage, PushNotificationAction
 from digital_relay_server.api.security import ExtendedRegisterForm, ExtendedConfirmRegisterForm, \
     ExtendedResetPasswordForm
 from digital_relay_server.config.config import VAPID_PRIVATE_KEY, PUSH_HEADERS, VAPID_CLAIMS_SUB
@@ -51,13 +51,17 @@ def send_email_invites(recipients=None, author=None, team_name=None, team_link=N
             connection.send(message)
 
 
-def send_push_notifications(users, messages, data=None):
-    if isinstance(messages, PushNotificationMessages):
+def send_push_notifications(users, messages, actions=None):
+    if actions is None:
+        actions = []
+    if isinstance(messages, PushNotificationMessage):
         messages = messages.to_dict()
     for user in users:
         for subscription_info in user.push_subscriptions:
             webpush(subscription_info,
-                    data=render_template('push.json', n=messages, d=data),
+                    data=render_template('push.json', n=messages,
+                                         actions=[a.to_dict() if isinstance(a, PushNotificationAction) else a for a in
+                                                  actions]),
                     vapid_private_key=VAPID_PRIVATE_KEY,
                     vapid_claims={'sub': VAPID_CLAIMS_SUB},
                     headers=PUSH_HEADERS)

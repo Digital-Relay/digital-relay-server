@@ -62,3 +62,4 @@ DEFAULT_START = (int(os.environ.get('DEFAULT_START', 8)) * 60 * 60) + (0 * 60) +
 DAY_SECONDS = (23 * 60 * 60) + (59 * 60) + 59
 
 INVITE_SUBJECT = 'DXC RUN 4U - Pozvánka do tímu'
+PUSH_NOTIFICATION_ICON = 'assets/icons/icon-128x128.png'

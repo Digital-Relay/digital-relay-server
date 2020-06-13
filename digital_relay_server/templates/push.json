@@ -1,10 +1,29 @@
 {
   "notification": {
+    "title": "{{n.title}}",
     "body": "{{n.body}}",
-    "title": "{{n.title}}"
-  },
-  "data": {
-    "Nick": "Mario",
-    "Room": "PortugalVSDenmark"
-  }
+    "icon": "{{n.icon}}",
+    "vibrate": [
+      100,
+      50,
+      100
+    ],
+    "data": {
+{
+  % if n.team_id -%}
+"teamId": "{{n.team_id}}"
+{
+%- endif %
+}
+},
+"actions": [
+{% for action in actions -%}
+{
+"action": "{{action.action}}",
+"title": "{{action.title}}"
+}{% if not loop.last -%},
+{% endif %}
+{%- endfor %}
+]
+}
 }

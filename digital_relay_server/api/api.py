@@ -8,7 +8,7 @@ from flask_restx import Resource, Api, marshal
 from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 
 from digital_relay_server import authenticate, send_email_invites, send_push_notifications
-from digital_relay_server.api.models import Models, PushNotificationMessages
+from digital_relay_server.api.models import Models, PushNotificationMessage, PushNotificationAction
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
 from digital_relay_server.config.config import VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, API_VERSION, VAPID_CLAIMS_SUB, \
     PUSH_HEADERS
@@ -133,8 +133,8 @@ class PushResource(Resource):
         data = request.json
         if current_user.push_subscriptions.count(data) == 0:
             current_user.push_subscriptions.append(data)
-            push_message = PushNotificationMessages(title='Upozornenia fungujú!',
-                                                    body='Ďakujeme za povolenie upozornení.').to_dict()
+            push_message = PushNotificationMessage(title='Upozornenia fungujú!',
+                                                   body='Ďakujeme za povolenie upozornení.').to_dict()
             try:
                 pywebpush.webpush(subscription_info=data,
                                   data=render_template('push.json', n=push_message),
@@ -414,13 +414,18 @@ class Stages(Resource):
 
             stage_ended_recipients = team.members.copy()
             stage_ended_recipients.remove(finisher)
-            stage_ended_messages = PushNotificationMessages(title='Úsek ukončený',
-                                                            body=f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}')
-            send_push_notifications(list(User.objects(email__in=stage_ended_recipients)), stage_ended_messages)
+            stage_ended_messages = PushNotificationMessage(title='Úsek ukončený',
+                                                           body=f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}',
+                                                           team_id=team_id)
+            stage_ended_actions = PushNotificationAction.quick_actions(team_page=True)
+            send_push_notifications(list(User.objects(email__in=stage_ended_recipients)), stage_ended_messages,
+                                    stage_ended_actions)
             if next:
                 send_push_notifications(list(User.objects(email=next)),
-                                        PushNotificationMessages(title='Štart!',
-                                                                 body=f'Vyrážate na úsek {new_active_stage.index + 1}!'))
+                                        PushNotificationMessage(title='Štart!',
+                                                                body=f'Vyrážate na úsek {new_active_stage.index + 1}!',
+                                                                team_id=team_id),
+                                        PushNotificationAction.quick_actions(True, True))
         team.save()
         return marshal(team, models.team), 200
 
