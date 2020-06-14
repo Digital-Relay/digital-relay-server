@@ -3,6 +3,40 @@ from flask_restx import fields, Namespace
 from digital_relay_server.config.config import *
 
 
+class PushNotificationMessage():
+    def __init__(self, title=None, body=None, icon=PUSH_NOTIFICATION_ICON, team_id=None) -> None:
+        self.title = title
+        self.body = body
+        self.icon = icon
+        self.team_id = team_id
+
+    def to_dict(self):
+        return {'title': self.title,
+                'body': self.body,
+                'icon': self.icon,
+                'team_id': self.team_id}
+
+
+class PushNotificationAction():
+
+    def __init__(self, action=None, title=None) -> None:
+        self.action = action
+        self.title = title
+
+    def to_dict(self):
+        return {'action': self.action,
+                'title': self.title}
+
+    @staticmethod
+    def quick_actions(team_page=False, accept_relay=False):
+        result = []
+        if team_page:
+            result.append(PushNotificationAction('team', 'Stránka tímu'))
+        if accept_relay:
+            result.append(PushNotificationAction('relay', 'Prebrať štafetu'))
+        return result
+
+
 class Models:
     def __init__(self, ns_auth: Namespace, ns_teams: Namespace):
         user_register_model = {'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True),

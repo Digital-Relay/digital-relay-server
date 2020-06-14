@@ -1,0 +1,26 @@
+{
+  "notification": {
+    "title": "{{n.title}}",
+    "body": "{{n.body}}",
+    "icon": "{{n.icon}}",
+    "vibrate": [
+      100,
+      50,
+      100
+    ],
+    "data": {
+      {% if n.team_id -%}
+        "teamId": "{{n.team_id}}"
+      {% endif %}
+      },
+    "actions": [
+    {% for action in actions -%}
+    {
+      "action": "{{action.action}}",
+      "title": "{{action.title}}"
+    }{% if not loop.last -%},
+    {% endif %}
+    {%- endfor %}
+    ]
+  }
+}

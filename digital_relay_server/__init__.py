@@ -3,11 +3,12 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail, Message
 from flask_security import MongoEngineUserDatastore, Security
-from pywebpush import webpush
+from pywebpush import webpush, WebPushException
 
+from digital_relay_server.api.models import PushNotificationMessage, PushNotificationAction
 from digital_relay_server.api.security import ExtendedRegisterForm, ExtendedConfirmRegisterForm, \
     ExtendedResetPasswordForm
-from digital_relay_server.config.config import VAPID_PRIVATE_KEY
+from digital_relay_server.config.config import VAPID_PRIVATE_KEY, PUSH_HEADERS, VAPID_CLAIMS_SUB
 from digital_relay_server.db import db, User, Role
 
 app = Flask(__name__)
@@ -50,11 +51,28 @@ def send_email_invites(recipients=None, author=None, team_name=None, team_link=N
             connection.send(message)
 
 
-def send_push_notifications(users, data):
+def send_push_notifications(users, messages, actions=None):
+    if actions is None:
+        actions = []
+    if isinstance(messages, PushNotificationMessage):
+        messages = messages.to_dict()
     for user in users:
+        subscriptions = user.push_subscriptions.copy()
         for subscription_info in user.push_subscriptions:
-            logger.info(f'sending notification to {user.name}\n{subscription_info}')
-            webpush(subscription_info, data=data, vapid_private_key=VAPID_PRIVATE_KEY)
+            try:
+                webpush(subscription_info,
+                        data=render_template('push.json', n=messages,
+                                             actions=[a.to_dict() if isinstance(a, PushNotificationAction) else a for a in
+                                                      actions]),
+                        vapid_private_key=VAPID_PRIVATE_KEY,
+                        vapid_claims={'sub': VAPID_CLAIMS_SUB},
+                        headers=PUSH_HEADERS)
+            except WebPushException as e:
+                if e.response.status_code == 410:
+                    subscriptions.remove(subscription_info)
+        if len(subscriptions) != len(user.push_subscriptions):
+            user.push_subscriptions = subscriptions
+            user.save()
 
 
 from digital_relay_server.api.api import blueprint

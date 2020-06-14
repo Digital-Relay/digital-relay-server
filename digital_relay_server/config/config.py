@@ -46,6 +46,9 @@ MONGODB_PORT = int(os.environ.get('MONGODB_PORT', 27017))
 
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
 VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_CLAIMS_SUB = os.environ.get('VAPID_CLAIMS_SUB', 'mailto:m.pilnan@gmail.com')
+GOOGLE_SERVER_KEY = os.environ.get('GOOGLE_SERVER_KEY', '')
+PUSH_HEADERS = {'Authorization': f'key={GOOGLE_SERVER_KEY}'}
 
 EMAIL_MAX_LENGTH = 255
 PASSWORD_MAX_LENGTH = 128
@@ -59,3 +62,4 @@ DEFAULT_START = (int(os.environ.get('DEFAULT_START', 8)) * 60 * 60) + (0 * 60) +
 DAY_SECONDS = (23 * 60 * 60) + (59 * 60) + 59
 
 INVITE_SUBJECT = 'DXC RUN 4U - Pozvánka do tímu'
+PUSH_NOTIFICATION_ICON = 'assets/icons/icon-128x128.png'
