@@ -10,8 +10,8 @@
     ],
     "data": {
       {% if n.team_id -%}
-      "teamId": "{{n.team_id}}"
-      {%- endif %}
+        "teamId": "{{n.team_id}}"
+      {% endif %}
       },
     "actions": [
     {% for action in actions -%}
