@@ -33,7 +33,10 @@ class PushNotificationAction:
 
 class PushNotification:
 
-    def __init__(self, title=None, body=None, icon=PUSH_NOTIFICATION_ICON, data=None, actions=None) -> None:
+    def __init__(self, title=None, body=None, icon=PUSH_NOTIFICATION_ICON, vibrate=None, data=None, actions=None) -> None:
+        if vibrate is None or not isinstance(vibrate, list):
+            vibrate = [100, 50, 100]
+        self.vibrate = vibrate
         if data is None:
             data = {}
         self.data = data

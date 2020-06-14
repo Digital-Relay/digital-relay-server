@@ -425,7 +425,7 @@ class Stages(Resource):
             if next:
                 next_push_notification = PushNotification(title='Štart!',
                                                           body=f'Vyrážate na úsek {new_active_stage.index + 1}!',
-                                                          data=PushNotificationData(team_id=team_id),
+                                                          data=PushNotificationData(team_id=team_id, stage=new_active_stage.index),
                                                           actions=PushNotificationAction.quick_actions(True, True))
                 send_push_notifications(list(User.objects(email=next)), next_push_notification)
         team.save()
