@@ -1,31 +1,25 @@
+import json
+
+import jsons
+from flask import jsonify
 from flask_restx import fields, Namespace
 
 from digital_relay_server.config.config import *
 
 
-class PushNotificationMessage():
-    def __init__(self, title=None, body=None, icon=PUSH_NOTIFICATION_ICON, team_id=None) -> None:
-        self.title = title
-        self.body = body
-        self.icon = icon
-        self.team_id = team_id
-
-    def to_dict(self):
-        return {'title': self.title,
-                'body': self.body,
-                'icon': self.icon,
-                'team_id': self.team_id}
+class PushNotificationData:
+    def __init__(self, team_id=None, user_id=None, stage=None) -> None:
+        self.userId = user_id
+        self.teamId = team_id
+        self.stage = stage
 
 
-class PushNotificationAction():
+class PushNotificationAction:
 
     def __init__(self, action=None, title=None) -> None:
         self.action = action
         self.title = title
 
-    def to_dict(self):
-        return {'action': self.action,
-                'title': self.title}
 
     @staticmethod
     def quick_actions(team_page=False, accept_relay=False):
@@ -35,6 +29,23 @@ class PushNotificationAction():
         if accept_relay:
             result.append(PushNotificationAction('relay', 'Prebrať štafetu'))
         return result
+
+
+class PushNotification:
+
+    def __init__(self, title=None, body=None, icon=PUSH_NOTIFICATION_ICON, data=None, actions=None) -> None:
+        if data is None:
+            data = {}
+        self.data = data
+        if actions is None:
+            actions = []
+        self.actions = actions
+        self.icon = icon
+        self.body = body
+        self.title = title
+
+    def to_dict(self):
+        return {"notification": jsons.dump(self)}
 
 
 class Models:

@@ -1,3 +1,5 @@
+import json
+
 import pywebpush
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -8,7 +10,8 @@ from flask_restx import Resource, Api, marshal
 from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 
 from digital_relay_server import authenticate, send_email_invites, send_push_notifications
-from digital_relay_server.api.models import Models, PushNotificationMessage, PushNotificationAction
+from digital_relay_server.api.models import Models, PushNotificationAction, PushNotification, \
+    PushNotificationData
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
 from digital_relay_server.config.config import VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, API_VERSION, VAPID_CLAIMS_SUB, \
     PUSH_HEADERS
@@ -133,11 +136,11 @@ class PushResource(Resource):
         data = request.json
         if current_user.push_subscriptions.count(data) == 0:
             current_user.push_subscriptions.append(data)
-            push_message = PushNotificationMessage(title='Upozornenia fungujú!',
-                                                   body='Ďakujeme za povolenie upozornení.').to_dict()
+            push_message = PushNotification(title='Upozornenia fungujú!',
+                                            body='Ďakujeme za povolenie upozornení.').to_dict()
             try:
                 pywebpush.webpush(subscription_info=data,
-                                  data=render_template('push.json', n=push_message),
+                                  data=json.dumps(push_message),
                                   vapid_private_key=VAPID_PRIVATE_KEY,
                                   vapid_claims={'sub': VAPID_CLAIMS_SUB},
                                   headers=PUSH_HEADERS)
@@ -414,20 +417,45 @@ class Stages(Resource):
 
             stage_ended_recipients = team.members.copy()
             stage_ended_recipients.remove(finisher)
-            stage_ended_messages = PushNotificationMessage(title='Úsek ukončený',
-                                                           body=f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}',
-                                                           team_id=team_id)
-            stage_ended_actions = PushNotificationAction.quick_actions(team_page=True)
-            send_push_notifications(list(User.objects(email__in=stage_ended_recipients)), stage_ended_messages,
-                                    stage_ended_actions)
+            send_push_notifications(list(User.objects(email__in=stage_ended_recipients)),
+                                    PushNotification(title='Úsek ukončený',
+                                                     body=f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}',
+                                                     actions=PushNotificationAction.quick_actions(team_page=True),
+                                                     data=PushNotificationData(team_id=team_id)))
             if next:
-                send_push_notifications(list(User.objects(email=next)),
-                                        PushNotificationMessage(title='Štart!',
-                                                                body=f'Vyrážate na úsek {new_active_stage.index + 1}!',
-                                                                team_id=team_id),
-                                        PushNotificationAction.quick_actions(True, True))
+                next_push_notification = PushNotification(title='Štart!',
+                                                          body=f'Vyrážate na úsek {new_active_stage.index + 1}!',
+                                                          data=PushNotificationData(team_id=team_id),
+                                                          actions=PushNotificationAction.quick_actions(True, True))
+                send_push_notifications(list(User.objects(email=next)), next_push_notification)
         team.save()
         return marshal(team, models.team), 200
+
+
+@ns_teams.route(f'/{team_id_in_route}/accept_relay')
+class AcceptRelay(Resource):
+    @jwt_required
+    @ns_auth.doc(security=authorizations)
+    @ns_teams.expect(auth_header_jwt_parser)
+    @ns_teams.response(code=200, description='OK')
+    @ns_teams.response(code=400, description='Invalid ID', model=models.error)
+    @ns_teams.response(code=404, description='Team not found', model=models.error)
+    def post(self, team_id):
+        """Send push notifications about starting a stage to other team members"""
+        try:
+            team = Team.objects.get(id=ObjectId(team_id))
+        except InvalidId:
+            return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
+        except DoesNotExist:
+            return marshal({"msg": f'Team with team ID {team_id} does not exist'}, models.error), 404
+
+        active_stage = team.active_stage
+        recipients_emails = team.members.copy()
+        recipients_emails.remove(current_user.email)
+        send_push_notifications(list(User.objects(email__in=recipients_emails)),
+                                notification=PushNotification(title='Štafeta prevzatá',
+                                body=f'{current_user.name} vybehol na úsek číslo {active_stage.index + 1}'))
+        return 'OK', 200
 
 
 @ns_users.route('')
