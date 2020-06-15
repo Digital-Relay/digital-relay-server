@@ -7,4 +7,5 @@ Flask_Security_Too
 flask_mongoengine
 Flask-Cors
 pywebpush
+jsons
 WTForms~=2.3.1
