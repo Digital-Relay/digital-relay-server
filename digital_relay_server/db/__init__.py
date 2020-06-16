@@ -119,8 +119,35 @@ class Team(Document):
         return result
 
     @property
+    def average_tempo(self):
+        completed = self.stages_completed
+        real_length = 0
+        real_duration = 0
+        for stage in self.stages[:completed]:
+            real_length = real_length + (stage.length if stage.length else STAGE_LENGTH)
+            real_duration = real_duration + stage.real_time
+
+        try:
+            return int(real_duration / real_length)
+        except ZeroDivisionError:
+            return 0
+
+    @property
+    def stages_completed(self):
+        active = self.active_stage
+        if active:
+            return active.index
+        return NUMBER_OF_STAGES
+
+    @property
     def public_info(self):
-        return dict(id=self.id, name=self.name, members=self.members, donation=self.donation, stages=[])
+        return dict(id=self.id,
+                    name=self.name,
+                    members=self.members,
+                    donation=self.donation,
+                    stages=[],
+                    stages_completed=self.stages_completed,
+                    average_tempo=self.average_tempo)
 
     @property
     def active_stage(self):

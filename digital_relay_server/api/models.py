@@ -100,6 +100,8 @@ class Models:
         self.team = ns_teams.model('Team', {'id': fields.String,
                                             'name': fields.String(max_length=TEAM_NAME_MAX_LENGTH, required=True),
                                             'donation': fields.Float(min=0),
+                                            'average_tempo': fields.Integer(min=0, description='Average tempo for so far completed stages'),
+                                            'stages_completed': fields.Integer(min=0, max=NUMBER_OF_STAGES),
                                             'start': fields.Integer(min=0, max=DAY_SECONDS,
                                                                     description="Team's starting time of day, in seconds since midnight"),
                                             'members': fields.List(fields.String(max_length=EMAIL_MAX_LENGTH),
