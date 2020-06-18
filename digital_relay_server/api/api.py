@@ -456,7 +456,7 @@ class Stages(Resource):
                                                           data=PushNotificationData(team_id=team_id,
                                                                                     stage=new_active_stage.index),
                                                           actions=PushNotificationAction.quick_actions(True, True))
-                send_notifications(list(User.objects(email=next)), next_push_notification)
+                send_notifications(list(User.objects(email=next)), next_push_notification, team=team)
         team.save()
         return marshal(team, models.team), 200
 
