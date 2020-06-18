@@ -1,0 +1,13 @@
+<h1>Notifikácia o behu</h1>
+<p>
+    {{ body }}
+</p>
+{% if team %}
+    <p>
+        <!--suppress HtmlUnknownTarget -->
+        <a href="{{ team.url }}?acceptRelay=1">Akceptovať štafetu</a>.
+        <a href="{{ team.url }}">Stránka tímu</a>.
+    </p>
+{% endif %}
+<p>S pozdravom,</p>
+<p>Tím DXC RUN 4U</p>

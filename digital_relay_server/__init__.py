@@ -11,7 +11,7 @@ from digital_relay_server.api.models import PushNotificationAction, PushNotifica
 from digital_relay_server.api.security import ExtendedRegisterForm, ExtendedConfirmRegisterForm, \
     ExtendedResetPasswordForm
 from digital_relay_server.config.config import VAPID_PRIVATE_KEY, PUSH_HEADERS, VAPID_CLAIMS_SUB
-from digital_relay_server.db import db, User, Role
+from digital_relay_server.db import db, User, Role, Team
 
 app = Flask(__name__)
 app.config.from_pyfile('config/config.py')
@@ -53,7 +53,7 @@ def send_email_invites(recipients=None, author=None, team_name=None, team_link=N
             connection.send(message)
 
 
-def send_push_notifications(users, notification: PushNotification):
+def send_notifications(users, notification: PushNotification, team: Team = None):
     for user in users:
         subscriptions = user.push_subscriptions.copy()
         for subscription_info in user.push_subscriptions:
@@ -69,6 +69,12 @@ def send_push_notifications(users, notification: PushNotification):
         if len(subscriptions) != len(user.push_subscriptions):
             user.push_subscriptions = subscriptions
             user.save()
+        if user.email_notifications:
+            with mail.connect() as connection:
+                message = Message(subject="DXC RUN 4U Notifikácia: " + notification.title,
+                                  recipients=[user.email])
+                message.html = render_template("notification.html", body=notification.body, team=team)
+                connection.send(message)
 
 
 from digital_relay_server.api.api import blueprint

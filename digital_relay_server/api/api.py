@@ -3,13 +3,13 @@ import json
 import pywebpush
 from bson import ObjectId
 from bson.errors import InvalidId
-from flask import Blueprint, request, render_template
+from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, \
     current_user, jwt_refresh_token_required
 from flask_restx import Resource, Api, marshal
 from mongoengine import DoesNotExist, NotUniqueError, ValidationError
 
-from digital_relay_server import authenticate, send_email_invites, send_push_notifications
+from digital_relay_server import authenticate, send_email_invites, send_notifications
 from digital_relay_server.api.models import Models, PushNotificationAction, PushNotification, \
     PushNotificationData
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
@@ -116,9 +116,10 @@ class TokenRefresh(Resource):
                         'user': current_user}, models.jwt_response), 200
 
 
-@ns_auth.route('/push')
-class PushResource(Resource):
+@ns_auth.route('/notifications/push')
+class PushNotificationResource(Resource):
     @ns_auth.response(code=200, description='OK', model=models.vapid_public_key)
+    @ns_auth.doc(id="get_public_push_key")
     def get(self):
         """Get VAPID public key"""
         return marshal({'public_key': VAPID_PUBLIC_KEY}, models.vapid_public_key), 200
@@ -130,6 +131,7 @@ class PushResource(Resource):
     @ns_auth.response(code=204, description='Push subscription already registered')
     @ns_auth.response(code=400, description='Bad request', model=models.error)
     @ns_auth.response(code=401, description='Unauthorized', model=models.error)
+    @ns_auth.doc(id="create_push_subscription")
     @json_payload_required
     def post(self):
         """Add new push subscription to current user"""
@@ -148,6 +150,32 @@ class PushResource(Resource):
                 return marshal({'msg': e.message}, models.error), 400
         else:
             return 'Push subscription already registered', 204
+        current_user.save()
+        return 'OK', 200
+
+
+@ns_auth.route('/notifications/email')
+class EmailNotificationResource(Resource):
+
+    @jwt_required
+    @ns_auth.expect(auth_header_jwt_parser)
+    @ns_auth.doc(id="enable_email_notifications", security=authorizations)
+    @ns_auth.response(code=200, description='Email notifications enabled')
+    @ns_auth.response(code=401, description='Unauthorized', model=models.error)
+    def post(self):
+        """Enable email notifications for user"""
+        current_user.email_notifications = True
+        current_user.save()
+        return 'OK', 200
+
+    @jwt_required
+    @ns_auth.expect(auth_header_jwt_parser)
+    @ns_auth.doc(id="disable_email_notifications", security=authorizations)
+    @ns_auth.response(code=200, description='Email notifications disabled')
+    @ns_auth.response(code=401, description='Unauthorized', model=models.error)
+    def delete(self):
+        """Disable email notifications for user"""
+        current_user.email_notifications = False
         current_user.save()
         return 'OK', 200
 
@@ -417,17 +445,18 @@ class Stages(Resource):
 
             stage_ended_recipients = team.members.copy()
             stage_ended_recipients.remove(finisher)
-            send_push_notifications(list(User.objects(email__in=stage_ended_recipients)),
-                                    PushNotification(title='Úsek ukončený',
-                                                     body=f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}',
-                                                     actions=PushNotificationAction.quick_actions(team_page=True),
-                                                     data=PushNotificationData(team_id=team_id)))
+            send_notifications(list(User.objects(email__in=stage_ended_recipients)),
+                               PushNotification(title='Úsek ukončený',
+                                                body=f'{finisher_user.name} práve dobehol úsek č. {active_stage.index + 1}',
+                                                actions=PushNotificationAction.quick_actions(team_page=True),
+                                                data=PushNotificationData(team_id=team_id)))
             if next:
                 next_push_notification = PushNotification(title='Štart!',
                                                           body=f'Vyrážate na úsek {new_active_stage.index + 1}!',
-                                                          data=PushNotificationData(team_id=team_id, stage=new_active_stage.index),
+                                                          data=PushNotificationData(team_id=team_id,
+                                                                                    stage=new_active_stage.index),
                                                           actions=PushNotificationAction.quick_actions(True, True))
-                send_push_notifications(list(User.objects(email=next)), next_push_notification)
+                send_notifications(list(User.objects(email=next)), next_push_notification, team=team)
         team.save()
         return marshal(team, models.team), 200
 
@@ -452,9 +481,9 @@ class AcceptRelay(Resource):
         active_stage = team.active_stage
         recipients_emails = team.members.copy()
         recipients_emails.remove(current_user.email)
-        send_push_notifications(list(User.objects(email__in=recipients_emails)),
-                                notification=PushNotification(title='Štafeta prevzatá',
-                                body=f'{current_user.name} vybehol na úsek číslo {active_stage.index + 1}'))
+        send_notifications(list(User.objects(email__in=recipients_emails)),
+                           notification=PushNotification(title='Štafeta prevzatá',
+                                                         body=f'{current_user.name} vybehol na úsek číslo {active_stage.index + 1}'))
         return 'OK', 200
 
 
