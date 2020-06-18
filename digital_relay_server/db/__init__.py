@@ -23,6 +23,7 @@ class User(Document, UserMixin):
     name = StringField(max_length=NAME_MAX_LENGTH)
     tempo = IntField(min_value=0)
     push_subscriptions = ListField(DictField(), default=[])
+    email_notifications = BooleanField(default=False)
 
     def get_security_payload(self):
         return {

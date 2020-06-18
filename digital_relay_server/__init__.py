@@ -53,7 +53,7 @@ def send_email_invites(recipients=None, author=None, team_name=None, team_link=N
             connection.send(message)
 
 
-def send_push_notifications(users, notification: PushNotification):
+def send_notifications(users, notification: PushNotification):
     for user in users:
         subscriptions = user.push_subscriptions.copy()
         for subscription_info in user.push_subscriptions:
@@ -69,6 +69,10 @@ def send_push_notifications(users, notification: PushNotification):
         if len(subscriptions) != len(user.push_subscriptions):
             user.push_subscriptions = subscriptions
             user.save()
+        if user.email_notifications:
+            with mail.connect() as connection:
+                connection.send(Message(subject="DXC RUN 4U Notifikácia: " + notification.title, body=notification.body,
+                                        recipients=[user.email]))
 
 
 from digital_relay_server.api.api import blueprint
