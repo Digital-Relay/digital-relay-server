@@ -493,7 +493,7 @@ class UserResource(Resource):
 @ns_auth.route('/import')
 class ImportResource(Resource):
 
-    @ns_users.expect(auth_header_jwt_parser, models.import_model)
+    @ns_users.expect(models.import_model)
     @ns_auth.response(code=200, description='Import hotovy')
     @json_payload_required
     def post(self):
@@ -502,7 +502,7 @@ class ImportResource(Resource):
         source = MongoClient(data["connection"])
         target = MongoClient("mongodb://localhost:27017/")
 
-        target[MONGODB_DB]["user"].insert_many(list(source[MONGODB_DB]["user"].find()))
-        target[MONGODB_DB]["team"].insert_many(list(source[MONGODB_DB]["team"].find()))
-        target[MONGODB_DB]["stage"].insert_many(list(source[MONGODB_DB]["stage"].find()))
+        target[MONGODB_DB]["user"].insert_many(list(source['test']["user"].find()))
+        target[MONGODB_DB]["team"].insert_many(list(source['test']["team"].find()))
+        target[MONGODB_DB]["stage"].insert_many(list(source['test']["stage"].find()))
         return 'OK', 200
