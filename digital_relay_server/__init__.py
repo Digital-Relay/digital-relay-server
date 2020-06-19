@@ -69,12 +69,12 @@ def send_notifications(users, notification: PushNotification, team: Team = None)
         if len(subscriptions) != len(user.push_subscriptions):
             user.push_subscriptions = subscriptions
             user.save()
-        if user.email_notifications:
-            with mail.connect() as connection:
-                message = Message(subject="DXC RUN 4U Notifikácia: " + notification.title,
-                                  recipients=[user.email])
-                message.html = render_template("notification.html", body=notification.body, team=team)
-                connection.send(message)
+
+        with mail.connect() as connection:
+            message = Message(subject="DXC RUN 4U Notifikácia: " + notification.title,
+                              recipients=[user.email])
+            message.html = render_template("notification.html", body=notification.body, team=team)
+            connection.send(message)
 
 
 from digital_relay_server.api.api import blueprint
