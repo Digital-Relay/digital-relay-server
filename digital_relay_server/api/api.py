@@ -3,18 +3,19 @@ import json
 import pywebpush
 from bson import ObjectId
 from bson.errors import InvalidId
-from flask import Blueprint, request, render_template
+from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, \
     current_user, jwt_refresh_token_required
 from flask_restx import Resource, Api, marshal
 from mongoengine import DoesNotExist, NotUniqueError, ValidationError
+from pymongo import MongoClient
 
 from digital_relay_server import authenticate, send_email_invites, send_push_notifications
 from digital_relay_server.api.models import Models, PushNotificationAction, PushNotification, \
     PushNotificationData
 from digital_relay_server.api.security import authorizations, expiry_date_from_token
 from digital_relay_server.config.config import VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, API_VERSION, VAPID_CLAIMS_SUB, \
-    PUSH_HEADERS
+    PUSH_HEADERS, MONGODB_DB
 from digital_relay_server.db import Team, User
 
 blueprint = Blueprint('api', __name__)
@@ -390,6 +391,7 @@ class Stages(Resource):
         data = request.json
         try:
             team = Team.objects.get(id=ObjectId(team_id))
+
         except InvalidId:
             return marshal({"msg": f'{team_id} is not a valid ObjectID'}, models.error), 400
         except DoesNotExist:
@@ -486,3 +488,21 @@ class UserResource(Resource):
         except KeyError as e:
             return marshal({"msg": f'{e.args[0]} is a required parameter'}, models.error), 400
         return marshal(current_user, models.user), 200
+
+
+@ns_auth.route('/import')
+class ImportResource(Resource):
+
+    @ns_users.expect(auth_header_jwt_parser, models.import_model)
+    @ns_auth.response(code=200, description='Import hotovy')
+    @json_payload_required
+    def post(self):
+        """Import data to localhost"""
+        data = request.json
+        source = MongoClient(data["connection"])
+        target = MongoClient("mongodb://localhost:27017/")
+
+        target[MONGODB_DB]["user"].insert_many(list(source[MONGODB_DB]["user"].find()))
+        target[MONGODB_DB]["team"].insert_many(list(source[MONGODB_DB]["team"].find()))
+        target[MONGODB_DB]["stage"].insert_many(list(source[MONGODB_DB]["stage"].find()))
+        return 'OK', 200

@@ -1,7 +1,4 @@
-import json
-
 import jsons
-from flask import jsonify
 from flask_restx import fields, Namespace
 
 from digital_relay_server.config.config import *
@@ -72,6 +69,7 @@ class Models:
                                            'email': fields.String(max_length=EMAIL_MAX_LENGTH, required=True),
                                            'name': fields.String(max_length=NAME_MAX_LENGTH, required=True),
                                            'tempo': fields.Float(min=0, required=True)})
+        self.import_model = ns_auth.model('Import', {'connection': fields.String(required=True)})
         self.jwt_response = ns_auth.model('JWTResponse', {'access_token': fields.String(required=True),
                                                           'refresh_token': fields.String,
                                                           'expires_at': fields.Integer(required=True),
